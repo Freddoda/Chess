@@ -412,7 +412,7 @@ class PieceManager:
                                 self.moves.pop(self.moves.index(x.pos))
                             
 
-                print(self.moves)
+                #print(self.moves)
     
     def checkCheck(self,turn:pCol):
         Sp=None
@@ -478,8 +478,11 @@ class PieceManager:
                             self.Bishopcheckfn(Bp,Cp,False,False)
                             self.Bishopcheckfn(Bp,Cp,False,True)
                             self.Bishopcheckfn(Bp,Cp,True,False)
+                            if Bp.selected:
+                                self.Bishopcheckpr(Bp,Cp,True,True)
+                                self.Bishopcheckpr(Bp,Cp,True,False)
 
-            print(self.moves)
+            #print(self.moves)
 
     def pawnChPredict(self,Pawn : Piece, King : Piece, Off1 : int, Off2 : int):
         if Pawn.pos == (King.pos[0]+Off1+1,King.pos[1]+Off2-(Pawn.col.value*2-1)) or Pawn.pos == (King.pos[0]+Off1-1,King.pos[1]+Off2-(Pawn.col.value*2-1)):
@@ -542,9 +545,8 @@ class PieceManager:
                 if piece.pos in between:
                     if check:
                         check = False
-                        if piece.col==King.col:
-                            pin=True
-                            pinned = piece
+                        pin=True
+                        pinned = piece
                     elif pin:
                         pin = False
         if check:
@@ -570,13 +572,16 @@ class PieceManager:
                         self.moves.pop(i)
                     else:
                         i+=1
+            if King.selected:
+                if pinned.pos in self.moves:
+                    self.moves.pop(self.moves.index(pinned.pos))
 
     def Rookcheckpr(self,King:Piece,Rook:Piece,horz:bool,low:bool):
-        access = [True,True]
+        access : list[list[bool]] = [[True,True,True],[True,True,True]]
         n=0
-        while access[0] or access[1]:
+        while access[0][0] or access[0][1] or access[0][2] or access[1][0] or access[1][1] or access[1][2]:
             for i in range(2):
-                if access[i]:
+                if access[i][0] or access[i][1] or access[i][2]:
                     if -1 < King.pos[1 if horz else 0]-n+2*i*n < 8:
                         for piece in self.pieces:
                             if horz:
@@ -584,25 +589,43 @@ class PieceManager:
                                     if piece==Rook:
                                         move = 0
                                         while move<len(self.moves):
-                                            if self.moves[move][0] == King.pos[0]-1*(1 if low else -1) and not self.moves[move] == Rook.pos:
+                                            if (
+                                                self.moves[move][0] == King.pos[0]-1*(1 if low else -1) and not self.moves[move] == Rook.pos
+                                                and access[i][self.moves[move][1]-King.pos[1]+1]
+                                               ):
                                                 self.moves.pop(move)
                                             else:
                                                 move+=1
                                     else:
-                                        access[i] = False
+                                        if n>=2:
+                                            access[i] = [False,False,False]
+                                        elif n==1:
+                                            access[i][1]=False
+                                            access[i][2-2*i]=False
+                                        elif n==0:
+                                            access[i][2-2*i]=False
                             if not horz:
                                 if piece.pos == (King.pos[0]-n+2*i*n,King.pos[1]-1*(1 if low else -1)):
                                     if piece==Rook:
                                         move = 0
                                         while move<len(self.moves):
-                                            if self.moves[move][1] == King.pos[1]-1*(1 if low else -1) and not self.moves[move] == Rook.pos:
+                                            if (
+                                                self.moves[move][1] == King.pos[1]-1*(1 if low else -1) and not self.moves[move] == Rook.pos
+                                                and access[i][self.moves[move][0]-King.pos[0]+1]
+                                               ):
                                                 self.moves.pop(move)
                                             else:
                                                 move+=1
                                     else:
-                                        access[i] = False
+                                        if n>=2:
+                                            access[i] = [False,False,False]
+                                        elif n==1:
+                                            access[i][1]=False
+                                            access[i][2-2*i]=False
+                                        elif n==0:
+                                            access[i][2-2*i]=False
                     else:
-                        access[i] = False
+                        access[i] = [False,False,False]
             n+=1
 
     def Bishopcheckfn(self,King:Piece,Bishop:Piece,left:bool,up:bool):
@@ -653,7 +676,62 @@ class PieceManager:
                             self.moves.pop(n)
                         else:
                             n+=1
+                elif King.selected:
+                    if pinned.pos in self.moves:
+                        self.moves.pop(self.moves.index(pinned.pos))
 
+    def Bishopcheckpr(self,King:Piece,Bishop:Piece,inside:bool,downRight:bool):
+        if inside:
+            access : list[list] = [[[True,True],[True,True]],[[True,True],[True,True]]]
+        else:
+            access : list[list] =[[True,True],[True,True]]
+        n=0
+        if inside:
+            while ((access[0][0][0] or access[0][0][1]) or (access[0][1][0] or access[0][1][1]) 
+                   or (access[1][0][0] or access[1][0][1]) or (access[1][1][0] or access[1][1][1])):
+                for a in range(2):
+                    for b in range(2):
+                        if n==1:
+                            print(((King.pos[0]-1+a*2) + (-n+n*b*2)),((King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2))))
+                        if -1<(King.pos[0]-1+a*2) + (-n+n*b*2)<8 and -1<(King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2))<8:
+                            if(((King.pos[0]-1+a*2) + (-n+n*b*2)),((King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2)))) == Bishop.pos:
+                                move=0
+                                print(a)
+                                while move<len(self.moves):
+                                    if ((self.moves[move][0]==King.pos[0]-1+a*2 and self.moves[move][1]==King.pos[1]) and access[a][b][0]):
+                                        self.moves.pop(move)
+                                    elif ((self.moves[move][0]==King.pos[0]) and  self.moves[move][1]==King.pos[1]+(1-a*2)-(not downRight)*2*(1-a*2) and access[a][b][1]):
+                                        self.moves.pop(move)
+                                    else:
+                                        move+=1
+                            else:
+                                for piece in self.pieces:
+                                    if piece.pos==(((King.pos[0]-1+a*2) + (-n+n*b*2)),((King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2)))):
+                                        if downRight:
+                                            if n==0:
+                                                if not b==a:
+                                                    access[a][b][1]=False
+                                            elif n==1 and a==b:
+                                                access[a][b][0]=False
+                                            else:
+                                                access[a][b]=[False,False]
+                                        else:
+                                            if n==0:
+                                                if b==a:
+                                                    access[a][b][1]=False
+                                            elif n==1 and not a==b:
+                                                access[a][b][0]=False
+                                            else:
+                                                access[a][b]=[False,False]
+                        else:
+                            access[a][b][0]=False
+                            access[a][b][1]=False
+                n+=1
+        else:
+            while ((access[0][0] or access[0][1]) or (access[1][0] or access[1][1])):
+                #for a in range(2):
+                
+                n+=1
 
     def clickM(self, mButt : list[int], mPos : tuple[int,int],turn : pCol) -> pCol:
         if 1 in mButt:
