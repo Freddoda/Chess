@@ -691,16 +691,14 @@ class PieceManager:
                    or (access[1][0][0] or access[1][0][1]) or (access[1][1][0] or access[1][1][1])):
                 for a in range(2):
                     for b in range(2):
-                        if n==1:
-                            print(((King.pos[0]-1+a*2) + (-n+n*b*2)),((King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2))))
                         if -1<(King.pos[0]-1+a*2) + (-n+n*b*2)<8 and -1<(King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2))<8:
                             if(((King.pos[0]-1+a*2) + (-n+n*b*2)),((King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2)))) == Bishop.pos:
                                 move=0
                                 print(a)
                                 while move<len(self.moves):
-                                    if ((self.moves[move][0]==King.pos[0]-1+a*2 and self.moves[move][1]==King.pos[1]) and access[a][b][0]):
+                                    if ((self.moves[move][0]==King.pos[0]-1+a*2 and self.moves[move][1]==King.pos[1]) and access[a][b][1]):
                                         self.moves.pop(move)
-                                    elif ((self.moves[move][0]==King.pos[0]) and  self.moves[move][1]==King.pos[1]+(1-a*2)-(not downRight)*2*(1-a*2) and access[a][b][1]):
+                                    elif ((self.moves[move][0]==King.pos[0]) and  self.moves[move][1]==King.pos[1]+(1-a*2)-(not downRight)*2*(1-a*2) and access[a][b][0]):
                                         self.moves.pop(move)
                                     else:
                                         move+=1
@@ -729,8 +727,22 @@ class PieceManager:
                 n+=1
         else:
             while ((access[0][0] or access[0][1]) or (access[1][0] or access[1][1])):
-                #for a in range(2):
-                
+                for a in range(2):
+                    for b in range(2):
+                        if access[a][b]:
+                            if not (-1<(King.pos[0]-1+a*2)+(n*(1-2*b))<8 and
+                                -1<(King.pos[1]+(-1+a*2)*(1-2*(downRight)))+(n*(1-2*b)*(1-2*(not downRight)))<8):
+                                access[a][b]=False
+                            elif Bishop.pos == ((King.pos[0]-1+a*2)+(n*(1-2*b)),
+                                              (King.pos[1]+(-1+a*2)*(1-2*(downRight)))+(n*(1-2*b)*(1-2*(not downRight)))):
+                                if ((King.pos[0]-1+a*2),(King.pos[1]+(-1+a*2)*(1-2*(downRight)))) in self.moves:
+                                    self.moves.pop(self.moves.index(((King.pos[0]-1+a*2),(King.pos[1]+(-1+a*2)*(1-2*(downRight))))))
+                            else:
+                                for piece in self.pieces:
+                                    if piece.pos == ((King.pos[0]-1+a*2)+(n*(1-2*b)),
+                                                     (King.pos[1]+(-1+a*2)*(1-2*(downRight)))+(n*(1-2*b)*(1-2*(not downRight)))):
+                                        access[a][b]=False
+                                        break
                 n+=1
 
     def clickM(self, mButt : list[int], mPos : tuple[int,int],turn : pCol) -> pCol:
