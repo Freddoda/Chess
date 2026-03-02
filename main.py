@@ -481,6 +481,27 @@ class PieceManager:
                             if Bp.selected:
                                 self.Bishopcheckpr(Bp,Cp,True,True)
                                 self.Bishopcheckpr(Bp,Cp,True,False)
+                                self.Bishopcheckpr(Bp,Cp,False,True)
+                                self.Bishopcheckpr(Bp,Cp,False,False)
+                        
+                        elif Cp.type == pType.QUEEN and Cp.col!=turn:
+                            self.Rookcheckfn(Bp,Cp,False,True)
+                            self.Rookcheckfn(Bp,Cp,True,True)
+                            self.Rookcheckfn(Bp,Cp,False,False)
+                            self.Rookcheckfn(Bp,Cp,True,False)
+                            self.Bishopcheckfn(Bp,Cp,True,True)
+                            self.Bishopcheckfn(Bp,Cp,False,False)
+                            self.Bishopcheckfn(Bp,Cp,False,True)
+                            self.Bishopcheckfn(Bp,Cp,True,False)
+                            if Bp.selected:
+                                self.Rookcheckpr(Bp,Cp,True,True)
+                                self.Rookcheckpr(Bp,Cp,False,True)
+                                self.Rookcheckpr(Bp,Cp,True,False)
+                                self.Rookcheckpr(Bp,Cp,False,False)
+                                self.Bishopcheckpr(Bp,Cp,True,True)
+                                self.Bishopcheckpr(Bp,Cp,True,False)
+                                self.Bishopcheckpr(Bp,Cp,False,True)
+                                self.Bishopcheckpr(Bp,Cp,False,False)
 
             #print(self.moves)
 
@@ -696,9 +717,9 @@ class PieceManager:
                                 move=0
                                 print(a)
                                 while move<len(self.moves):
-                                    if ((self.moves[move][0]==King.pos[0]-1+a*2 and self.moves[move][1]==King.pos[1]) and access[a][b][1]):
+                                    if ((self.moves[move][0]==King.pos[0]-1+a*2 and self.moves[move][1]==King.pos[1]) and access[a][b][0] and self.moves[move]!=Bishop.pos):
                                         self.moves.pop(move)
-                                    elif ((self.moves[move][0]==King.pos[0]) and  self.moves[move][1]==King.pos[1]+(1-a*2)-(not downRight)*2*(1-a*2) and access[a][b][0]):
+                                    elif ((self.moves[move][0]==King.pos[0]) and  self.moves[move][1]==King.pos[1]+(1-a*2)-(not downRight)*2*(1-a*2) and access[a][b][1] and self.moves[move]!=Bishop.pos):
                                         self.moves.pop(move)
                                     else:
                                         move+=1
@@ -707,10 +728,10 @@ class PieceManager:
                                     if piece.pos==(((King.pos[0]-1+a*2) + (-n+n*b*2)),((King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2)))):
                                         if downRight:
                                             if n==0:
-                                                if not b==a:
-                                                    access[a][b][1]=False
-                                            elif n==1 and a==b:
-                                                access[a][b][0]=False
+                                                if ( b==a):
+                                                    access[a][b][0]=False
+                                            elif n==1 and not a==b:
+                                                access[a][b][1]=False
                                             else:
                                                 access[a][b]=[False,False]
                                         else:
