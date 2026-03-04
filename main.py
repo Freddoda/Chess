@@ -31,7 +31,7 @@ class Game:
             buffertime=int(1000/60 - (finTime-startTime))
         else:
             buffertime=1
-        #print(buffertime)
+        print(buffertime)
         self.root.after(buffertime,self.gameloop)
 
     def update(self):
@@ -124,6 +124,7 @@ class Piece:
     type : pType
     pos : tuple[int,int]
     selected : bool = False
+    moved : tuple[bool,bool] = (False,False)
 
 class PieceManager:
     def __init__(self):
@@ -503,6 +504,10 @@ class PieceManager:
                                 self.Bishopcheckpr(Bp,Cp,False,True)
                                 self.Bishopcheckpr(Bp,Cp,False,False)
 
+                        elif Cp.type == pType.KING and Cp.col!=turn:
+                            if Bp.selected:
+                                self.Kingchpr(Bp,Cp)
+
             #print(self.moves)
 
     def pawnChPredict(self,Pawn : Piece, King : Piece, Off1 : int, Off2 : int):
@@ -715,7 +720,6 @@ class PieceManager:
                         if -1<(King.pos[0]-1+a*2) + (-n+n*b*2)<8 and -1<(King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2))<8:
                             if(((King.pos[0]-1+a*2) + (-n+n*b*2)),((King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2)))) == Bishop.pos:
                                 move=0
-                                print(a)
                                 while move<len(self.moves):
                                     if ((self.moves[move][0]==King.pos[0]-1+a*2 and self.moves[move][1]==King.pos[1]) and access[a][b][0] and self.moves[move]!=Bishop.pos):
                                         self.moves.pop(move)
@@ -766,6 +770,17 @@ class PieceManager:
                                         break
                 n+=1
 
+    def Kingchpr(self, King1 : Piece, King2 : Piece):
+        move=0
+        while move < len(self.moves):
+            if (King2.pos[0]-1<=self.moves[move][0]<=King2.pos[0]+1 and
+                King2.pos[1]-1<=self.moves[move][1]<=King2.pos[1]+1):
+                self.moves.pop(move)
+            else:
+                move+=1
+
+
+
     def clickM(self, mButt : list[int], mPos : tuple[int,int],turn : pCol) -> pCol:
         if 1 in mButt:
             for move in self.moves:
@@ -775,6 +790,10 @@ class PieceManager:
                             self.pieces.pop(self.pieces.index(piece))
                         if piece.selected:
                             piece.pos=move
+                            if piece.moved == (False,False):
+                                piece.moved = (True,False)
+                            elif piece.moved == (True,False):
+                                piece.moved = (True,True)
                     turn = pCol.WHITE if turn==pCol.BLACK else pCol.BLACK
 
             for piece in self.pieces:
