@@ -196,6 +196,10 @@ class PieceManager:
                                     self.moves.append((piece.pos[0]-1,piece.pos[1]+(-1+2*piece.col.value)))
                                 if x.pos == (piece.pos[0]+1,piece.pos[1]+(-1+2*piece.col.value)) and not (x.col == piece.col):
                                     self.moves.append((piece.pos[0]+1,piece.pos[1]+(-1+2*piece.col.value)))
+                                if x.pos == (piece.pos[0]-1,piece.pos[1]) and (x.col != piece.col) and (x.type == pType.PAWN) and (x.moved[1]==False):
+                                    self.moves.append((piece.pos[0]-1,piece.pos[1]+(-1+2*piece.col.value)))
+                                if x.pos == (piece.pos[0]+1,piece.pos[1]) and (x.col != piece.col) and (x.type == pType.PAWN) and (x.moved[1]==False):
+                                    self.moves.append((piece.pos[0]+1,piece.pos[1]+(-1+2*piece.col.value)))
                     
                     case pType.KNIGHT:
                         #add moves that won't take you off the board
@@ -783,17 +787,25 @@ class PieceManager:
 
     def clickM(self, mButt : list[int], mPos : tuple[int,int],turn : pCol) -> pCol:
         if 1 in mButt:
+            passanted : Piece
+            passant = False
             for move in self.moves:
                 if 50+60*move[0]-30<mPos[0]<50+60*move[0]+30 and 100+60*move[1]-30<mPos[1]<100+60*move[1]+30:
                     for piece in self.pieces:
                         if piece.pos==move:
                             self.pieces.pop(self.pieces.index(piece))
+                        if piece.pos==(move[0],move[1]+(-1+2*piece.col.value)) and piece.moved[1]==False:
+                            passanted=piece
+                            passant = True
                         if piece.selected:
                             piece.pos=move
+                            if piece.type==pType.PAWN and passant == True:
+                                self.pieces.pop(self.pieces.index(passanted))
+                            for a in self.pieces:
+                                if a.moved == (True,False):
+                                    a.moved=(True,True)
                             if piece.moved == (False,False):
                                 piece.moved = (True,False)
-                            elif piece.moved == (True,False):
-                                piece.moved = (True,True)
                     turn = pCol.WHITE if turn==pCol.BLACK else pCol.BLACK
 
             for piece in self.pieces:
