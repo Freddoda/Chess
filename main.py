@@ -721,7 +721,7 @@ class PieceManager:
                    or (access[1][0][0] or access[1][0][1]) or (access[1][1][0] or access[1][1][1])):
                 for a in range(2):
                     for b in range(2):
-                        if -1<(King.pos[0]-1+a*2) + (-n+n*b*2)<8 and -1<(King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2))<8:
+                        if -2<(King.pos[0]-1+a*2) + (-n+n*b*2)<8 and -1<(King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2))<9:
                             if(((King.pos[0]-1+a*2) + (-n+n*b*2)),((King.pos[1]) + ((-n+n*b*2)-(not downRight)*2*(-n+n*b*2)))) == Bishop.pos:
                                 move=0
                                 while move<len(self.moves):
@@ -802,37 +802,56 @@ class PieceManager:
                     break
 
         if not check:
-            check = self.isPosCheckRook(turn, x, y, 1)
-            check = self.isPosCheckRook(turn, x, y, 2)
-            check = self.isPosCheckRook(turn, x, y, 3)
-            check = self.isPosCheckRook(turn, x, y, 4)
-            
+            for i in range(1,5):
+                check = self.isPosCheckRook(turn, x, y, i)
+                if check:
+                    break
+        
+        if not check:
+            for i in range(1,5):
+                check = self.isPosCheckBishop(turn, x, y, i)
+                if check:
+                    break
 
         return check
     
     def isPosCheckRook(self, turn : pCol, x : int, y : int, dir: int) -> bool:
         check = False
-        access = False
+        access = True
         if dir == 1 or dir == 2:
             for i in range(1,(x+1) if dir==1 else (8-x)):
                 if access:
                     for piece in self.pieces:
-                        if piece.pos[1] == y and piece.pos[0] == (x-i) if dir==1 else (x+i):
+                        if (piece.pos[1] == y and piece.pos[0] == ((x-i) if dir==1 else (x+i))):
                             access=False
                             if piece.col != turn and (piece.type == pType.ROOK or piece.type == pType.QUEEN):
                                 check=True
-                                break
+                            break
 
         else:
             for i in range(1,(y+1) if dir==3 else (8-y)):
                 if access:
                     for piece in self.pieces:
-                        if piece.pos[0] == x and piece.pos[1] == (y-i) if dir==3 else (y+i):
+                        if (piece.pos[0] == x and piece.pos[1] == ((y-i) if dir==3 else (y+i))):
                             access=False
                             if piece.col != turn and (piece.type == pType.ROOK or piece.type == pType.QUEEN):
                                 check=True
-                                break
+                            break
 
+        return check
+
+    def isPosCheckBishop(self, turn : pCol, x : int, y : int, dir : int):
+        check = False
+        access = True
+        for i in range(1,min((x+1 if (dir == 1 or dir == 2) else 8-x), (y+1 if (dir == 1 or dir == 3) else 8-y))):
+            if access:
+                for piece in self.pieces:
+                    if (piece.pos[0] == (x-i if (dir == 1 or dir == 2) else x+i) 
+                        and piece.pos[1] == (y-i if (dir == 1 or dir == 3) else y+i)):
+                        access = False
+                        if piece.col != turn and (piece.type == pType.BISHOP or piece.type == pType.QUEEN):
+                            check=True
+                        break
         return check
 
 
