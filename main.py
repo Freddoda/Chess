@@ -784,6 +784,57 @@ class PieceManager:
                 move+=1
 
 
+    def isPosCheck(self, turn : pCol, x : int, y : int) -> bool:
+        check = False
+
+        for i in self.pieces:
+            if i.type == pType.PAWN and i.col != turn:
+                if i.pos[1]==y+(-1+2*turn.value) and (i.pos[0] == x+1 or i.pos[0] == x-1):
+                    check=True
+                    break
+
+            elif i.type == pType.KNIGHT and i.col != turn:
+                if (((i.pos[0] == x+1 or i.pos[0] == x-1) and
+                    (i.pos[1] == y+2 or i.pos[1] == y-2)) or 
+                    ((i.pos[0] == x+2 or i.pos[0] == x-2) and
+                    (i.pos[1] == y+1 or i.pos[1] == y-1))) :
+                    check=True
+                    break
+
+        if not check:
+            check = self.isPosCheckRook(turn, x, y, 1)
+            check = self.isPosCheckRook(turn, x, y, 2)
+            check = self.isPosCheckRook(turn, x, y, 3)
+            check = self.isPosCheckRook(turn, x, y, 4)
+            
+
+        return check
+    
+    def isPosCheckRook(self, turn : pCol, x : int, y : int, dir: int) -> bool:
+        check = False
+        access = False
+        if dir == 1 or dir == 2:
+            for i in range(1,(x+1) if dir==1 else (8-x)):
+                if access:
+                    for piece in self.pieces:
+                        if piece.pos[1] == y and piece.pos[0] == (x-i) if dir==1 else (x+i):
+                            access=False
+                            if piece.col != turn and (piece.type == pType.ROOK or piece.type == pType.QUEEN):
+                                check=True
+                                break
+
+        else:
+            for i in range(1,(y+1) if dir==3 else (8-y)):
+                if access:
+                    for piece in self.pieces:
+                        if piece.pos[0] == x and piece.pos[1] == (y-i) if dir==3 else (y+i):
+                            access=False
+                            if piece.col != turn and (piece.type == pType.ROOK or piece.type == pType.QUEEN):
+                                check=True
+                                break
+
+        return check
+
 
     def clickM(self, mButt : list[int], mPos : tuple[int,int],turn : pCol) -> pCol:
         if 1 in mButt:
