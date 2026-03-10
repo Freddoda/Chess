@@ -437,6 +437,8 @@ class PieceManager:
                                         castle1=False
                                     elif item.pos in bet2:
                                         castle2=False
+                                if self.isPosCheck(turn,piece.pos[0],piece.pos[1]):
+                                    castle1, castle2 = (False,False)
                             if castle1:
                                 if self.isPosCheck(turn, piece.pos[0]-1, piece.pos[1]):
                                     castle1=False
@@ -949,5 +951,6 @@ root.bind("<KeyRelease>",game.key_rel)
 root.bind("<Motion>",game.mouseMov)
 root.bind("<ButtonPress>",game.mPress)
 root.bind("<ButtonRelease>",game.mRel)
+
 
 root.mainloop()
