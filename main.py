@@ -911,6 +911,17 @@ class PieceManager:
                             passanted=piece
                             passant = True
                         if piece.selected:
+
+                            if piece.type==pType.KING and piece.moved[0]==False:
+                                if piece.pos[0]==move[0]-2:
+                                    for rook in self.pieces:
+                                        if rook.type == pType.ROOK and rook.pos==(7,piece.pos[1]):
+                                            rook.pos=(piece.pos[0]+1,piece.pos[1])
+                                elif piece.pos[0]==move[0]+2:
+                                    for rook in self.pieces:
+                                        if rook.type == pType.ROOK and rook.pos==(0,piece.pos[1]):
+                                            rook.pos=(piece.pos[0]-1,piece.pos[1])
+
                             piece.pos=move
                             if piece.type==pType.PAWN and passant == True:
                                 self.pieces.pop(self.pieces.index(passanted))
