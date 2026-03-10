@@ -415,7 +415,45 @@ class PieceManager:
                         for x in self.pieces:
                             if x.pos in self.moves and x.col==piece.col:
                                 self.moves.pop(self.moves.index(x.pos))
+
+                        if piece.moved[0]==False:
+                            bet1 : set= set()
+                            bet2 : set= set()
+                            for i in range(1,piece.pos[0]):
+                                bet1.add((piece.pos[0]-i,piece.pos[1]))
+                            for i in range(1,7-piece.pos[0]):
+                                bet2.add((piece.pos[0]+i,piece.pos[1]))
+                            castle1=False
+                            castle2=False
+                            for item in self.pieces:
+                                if item.type==pType.ROOK and item.col==piece.col and item.moved[0]==False:
+                                    if item.pos==(0,piece.pos[1]):
+                                        castle1=True
+                                    elif item.pos==(7,piece.pos[1]):
+                                        castle2=True
+                            if castle1 or castle2:
+                                for item in self.pieces:
+                                    if item.pos in bet1:
+                                        castle1=False
+                                    elif item.pos in bet2:
+                                        castle2=False
+                            if castle1:
+                                if self.isPosCheck(turn, piece.pos[0]-1, piece.pos[1]):
+                                    castle1=False
+                                elif self.isPosCheck(turn, piece.pos[0]-2, piece.pos[1]):
+                                    castle1=False
+                            if castle2:
+                                if self.isPosCheck(turn, piece.pos[0]+1, piece.pos[1]):
+                                    castle2=False
+                                elif self.isPosCheck(turn, piece.pos[0]+2, piece.pos[1]):
+                                    castle2=False
                             
+                            if castle1:
+                                self.moves.append((piece.pos[0]-2, piece.pos[1]))
+                            if castle2:
+                                self.moves.append((piece.pos[0]+2, piece.pos[1]))
+                                
+
 
                 #print(self.moves)
     
@@ -798,6 +836,11 @@ class PieceManager:
                     (i.pos[1] == y+2 or i.pos[1] == y-2)) or 
                     ((i.pos[0] == x+2 or i.pos[0] == x-2) and
                     (i.pos[1] == y+1 or i.pos[1] == y-1))) :
+                    check=True
+                    break
+            
+            elif i.type==pType.KING and i.col !=turn:
+                if i.pos[0]>=x-1 and i.pos[0]<=x+1 and i.pos[1]>=y-1 and i.pos[1]<=y+1:
                     check=True
                     break
 
