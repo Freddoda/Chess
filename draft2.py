@@ -42,8 +42,9 @@ class Board:
                     self.boardarray[a].append(None)
 
 class Chess:
-    def __init__(self, screen : pygame.Surface, board : Board):
-        self.screen = screen
+    def __init__(self, window : pygame.Window, board : Board):
+        self.window = window
+        self.screen = window.get_surface()
         self.boardObj = board
         self.boardArr = board.boardarray
         self.IDselect = 0
@@ -52,16 +53,18 @@ class Chess:
         pass
     
     def draw(self):
-        pass
+        self.screen.fill((128,128,128))
+
+        self.window.flip()
 
 bOffset = 20
 squareSize = 80
 
-screen = pygame.display.set_mode((2*bOffset+8*squareSize,2*bOffset+8*squareSize))
+window = pygame.Window("Chess",(2*bOffset+8*squareSize,2*bOffset+8*squareSize))
 board = Board(squareSize,bOffset)
-game = Chess(screen,board)
+game = Chess(window,board)
 
-interval = 0.166666667
+interval = 0.016666667
 
 Running = True
 while Running:
