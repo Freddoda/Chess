@@ -727,8 +727,9 @@ class PieceManager:
                     while n<len(self.moves):
                         if self.moves[n] in (((King.pos[0]-1,King.pos[1]-1),(King.pos[0]+1,King.pos[1]+1)) 
                                              if up==left else 
-                                             ((King.pos[0]-1,King.pos[1]+1),(King.pos[0]+1,King.pos[1]-1))):
+                                             ((King.pos[0]-1,King.pos[1]+1),(King.pos[0]+1,King.pos[1]-1))) and self.moves[n] != Bishop.pos:
                             self.moves.pop(n)
+                            print("goon")
                         else:
                             n+=1
                 else:
@@ -804,7 +805,7 @@ class PieceManager:
                                 access[a][b]=False
                             elif Bishop.pos == ((King.pos[0]-1+a*2)+(n*(1-2*b)),
                                               (King.pos[1]+(-1+a*2)*(1-2*(downRight)))+(n*(1-2*b)*(1-2*(not downRight)))):
-                                if ((King.pos[0]-1+a*2),(King.pos[1]+(-1+a*2)*(1-2*(downRight)))) in self.moves:
+                                if ((King.pos[0]-1+a*2),(King.pos[1]+(-1+a*2)*(1-2*(downRight)))) in self.moves and ((King.pos[0]-1+a*2),(King.pos[1]+(-1+a*2)*(1-2*(downRight))))!=Bishop.pos:
                                     self.moves.pop(self.moves.index(((King.pos[0]-1+a*2),(King.pos[1]+(-1+a*2)*(1-2*(downRight))))))
                             else:
                                 for piece in self.pieces:
