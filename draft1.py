@@ -729,7 +729,6 @@ class PieceManager:
                                              if up==left else 
                                              ((King.pos[0]-1,King.pos[1]+1),(King.pos[0]+1,King.pos[1]-1))) and self.moves[n] != Bishop.pos:
                             self.moves.pop(n)
-                            print("goon")
                         else:
                             n+=1
                 else:
