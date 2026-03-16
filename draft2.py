@@ -48,7 +48,9 @@ def getLetter(piece : Piece):
 @dataclass
 class Move:
     piece : Piece
-    pos : tuple[int,int]
+    pieceID : int
+    startpos : tuple[int,int]
+    endpos : tuple[int,int]
 
 class Board:
     def __init__(self,squareSize:int,bOffset:int,pieceSize:int):
@@ -87,7 +89,22 @@ class Board:
                     screen.blit(text,(self.bOffset+(a+0.5)*self.squareSize-text.width*0.5,
                                       self.bOffset+(b+0.5)*self.squareSize-self.pieceSize*0.5-3))
                     
-                    
+class MoveCalculator:
+    def __init__(self, boardObj : Board):
+        self.calculated = False
+        self.moves : set[Move] = set()
+        self.boardObj = boardObj
+        self.boardArr = boardObj.boardarray
+
+    def reCalc(self):
+        self.calculated = False
+
+    def calculate(self):
+        for a in range(8):
+            for b in range(8):
+                pass #calculate moves
+
+        self.calculated = True
 
 class Chess:
     def __init__(self, window : pygame.Window, board : Board):
@@ -95,10 +112,11 @@ class Chess:
         self.screen = window.get_surface()
         self.boardObj = board
         self.boardArr = board.boardarray
+        self.moveCalc = MoveCalculator(self.boardObj)
         self.IDselect = 0
 
-    def update(self, mousepos : tuple[int,int], click : tuple[int,int,int]):
-        pass
+    def update(self, mousepos : tuple[int,int], click : tuple[bool,bool,bool]):
+        self.select(click)
     
     def draw(self):
         self.screen.fill((128,128,128))
@@ -106,6 +124,16 @@ class Chess:
         self.boardObj.draw(self.screen)
 
         self.window.flip()
+
+    def select(self, click : tuple[bool,bool,bool]):
+        clickResolve = False
+        if click[0]:
+            if not self.IDselect == 0:
+                pass
+            if not clickResolve:
+                pass
+            if not clickResolve:
+                self.IDselect = 0
 
 bOffset = 20
 squareSize = 80
