@@ -2,6 +2,7 @@ import pygame
 from dataclasses import dataclass
 from enum import Enum
 import time
+import math
 
 pygame.init()
 
@@ -24,6 +25,7 @@ class Piece:
     ID : int
     type : pType
     col : pCol
+    moved : tuple[int,int] = (False,False)
 
 def nullPiece():
     return Piece(0,pType.NONE,pCol.NONE)
@@ -44,6 +46,11 @@ def getLetter(piece : Piece):
             return 'Q'
         case _ :
             return ''
+        
+class MoveType(Enum):
+    NORMAL = 0
+    ENPASSANT = 1
+    CASTLE = 2
 
 @dataclass
 class Move:
@@ -51,6 +58,7 @@ class Move:
     pieceID : int
     startpos : tuple[int,int]
     endpos : tuple[int,int]
+    type : MoveType = MoveType.NORMAL
 
 class Board:
     def __init__(self,squareSize:int,bOffset:int,pieceSize:int):
@@ -116,24 +124,43 @@ class Chess:
         self.IDselect = 0
 
     def update(self, mousepos : tuple[int,int], click : tuple[bool,bool,bool]):
-        self.select(click)
+        self.select(mousepos,click)
     
     def draw(self):
         self.screen.fill((128,128,128))
 
         self.boardObj.draw(self.screen)
+        self.drawSelected()
 
         self.window.flip()
 
-    def select(self, click : tuple[bool,bool,bool]):
+    def select(self, mousepos : tuple[int,int], click : tuple[bool,bool,bool]):
         clickResolve = False
+        offset = self.boardObj.bOffset
+        square = self.boardObj.squareSize
         if click[0]:
-            if not self.IDselect == 0:
-                pass
-            if not clickResolve:
-                pass
+            if offset<mousepos[0]<offset+8*square and offset<mousepos[1]<offset+8*square:
+
+                if not self.IDselect == 0:
+                    for move in self.moveCalc.moves:
+                        pass
+                if not clickResolve:
+                    self.IDselect = self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)].ID
+                    clickResolve = True
             if not clickResolve:
                 self.IDselect = 0
+    
+    def drawSelected(self):
+        offset = self.boardObj.bOffset
+        square = self.boardObj.squareSize
+        if self.IDselect!=0:
+            for a in range(8):
+                for b in range(8):
+                    if self.boardArr[a][b].ID == self.IDselect:
+                        x = a
+                        y = b
+
+            pygame.draw.circle(self.screen,(255,0,0),(offset+square*(x+0.5),offset+square*(y+0.5)),5)
 
 bOffset = 20
 squareSize = 80
