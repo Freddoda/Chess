@@ -58,7 +58,10 @@ class Move:
     pieceID : int
     startpos : tuple[int,int]
     endpos : tuple[int,int]
-    type : MoveType = MoveType.NORMAL
+    type : MoveType
+
+def newMove(piece : Piece, startpos: tuple[int,int], endpos : tuple[int,int], type : MoveType = MoveType.NORMAL):
+    return Move(piece,piece.ID,startpos,endpos,type)
 
 class Board:
     def __init__(self,squareSize:int,bOffset:int,pieceSize:int):
@@ -108,11 +111,20 @@ class MoveCalculator:
         self.calculated = False
 
     def calculate(self):
+        if self.calculated:
+            return None
+
+        self.moves.clear()
         for a in range(8):
             for b in range(8):
                 pass #calculate moves
 
         self.calculated = True
+    
+    def drawMoves(self,selectedID):
+        for move in self.moves:
+            if move.pieceID == selectedID:
+                pass #draw moves
 
 class Chess:
     def __init__(self, window : pygame.Window, board : Board):
@@ -121,10 +133,12 @@ class Chess:
         self.boardObj = board
         self.boardArr = board.boardarray
         self.moveCalc = MoveCalculator(self.boardObj)
+        self.moveSet = self.moveCalc.moves
         self.IDselect = 0
 
     def update(self, mousepos : tuple[int,int], click : tuple[bool,bool,bool]):
         self.select(mousepos,click)
+        self.moveCalc.calculate()
     
     def draw(self):
         self.screen.fill((128,128,128))
@@ -135,7 +149,6 @@ class Chess:
         self.window.flip()
 
     def select(self, mousepos : tuple[int,int], click : tuple[bool,bool,bool]):
-        clickResolve = False
         offset = self.boardObj.bOffset
         square = self.boardObj.squareSize
         if click[0]:
@@ -143,12 +156,17 @@ class Chess:
 
                 if not self.IDselect == 0:
                     for move in self.moveCalc.moves:
-                        pass
-                if not clickResolve:
-                    self.IDselect = self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)].ID
-                    clickResolve = True
-            if not clickResolve:
-                self.IDselect = 0
+                        if move.pieceID == self.IDselect:
+                            if (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square)) == move.endpos:
+                                self.boardArr[move.endpos[0]][move.endpos[1]] = move.piece
+                                self.boardArr[move.startpos[0]][move.startpos[1]] = nullPiece()
+                                self.moveCalc.reCalc()
+                                return None
+                            
+                self.IDselect = self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)].ID
+                return None
+
+            self.IDselect = 0
     
     def drawSelected(self):
         offset = self.boardObj.bOffset
