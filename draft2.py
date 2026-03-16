@@ -20,7 +20,7 @@ class pCol(Enum):
     WHITE=0
     BLACK=1
 
-@dataclass
+@dataclass(frozen=True)
 class Piece:
     ID : int
     type : pType
@@ -52,7 +52,7 @@ class MoveType(Enum):
     ENPASSANT = 1
     CASTLE = 2
 
-@dataclass
+@dataclass(frozen=True)
 class Move:
     piece : Piece
     pieceID : int
@@ -121,10 +121,12 @@ class MoveCalculator:
 
         self.calculated = True
     
-    def drawMoves(self,selectedID):
+    def drawMoves(self, screen : pygame.Surface, selectedID : int):
         for move in self.moves:
+            offset = self.boardObj.bOffset
+            square = self.boardObj.squareSize
             if move.pieceID == selectedID:
-                pass #draw moves
+                pygame.draw.circle(screen,(0,255,0),(offset+square*(move.endpos[0]+0.5),offset+square*(move.endpos[1]+0.5)),15)
 
 class Chess:
     def __init__(self, window : pygame.Window, board : Board):
@@ -145,6 +147,7 @@ class Chess:
 
         self.boardObj.draw(self.screen)
         self.drawSelected()
+        self.moveCalc.drawMoves(self.screen,self.IDselect)
 
         self.window.flip()
 
