@@ -31,7 +31,7 @@ class Game:
             buffertime=int(1000/60 - (finTime-startTime))
         else:
             buffertime=1
-        print(buffertime)
+        #print(buffertime)
         self.root.after(buffertime,self.gameloop)
 
     def update(self):
@@ -907,12 +907,13 @@ class PieceManager:
             for move in self.moves:
                 if 50+60*move[0]-30<mPos[0]<50+60*move[0]+30 and 100+60*move[1]-30<mPos[1]<100+60*move[1]+30:
                     for piece in self.pieces:
-                        if piece.pos==move:
+                        if piece.pos==move and not piece.selected:
                             self.pieces.pop(self.pieces.index(piece))
-                        if piece.pos==(move[0],move[1]+(-1+2*piece.col.value)) and piece.moved[1]==False:
+                        if piece.pos==(move[0],move[1]+(-1+2*piece.col.value)) and piece.moved[1]==False and piece.pos[1]!=(6-5*piece.col.value):
                             passanted=piece
                             passant = True
                         if piece.selected:
+                            selected = piece
 
                             if piece.type==pType.KING and piece.moved[0]==False:
                                 if piece.pos[0]==move[0]-2:
@@ -932,11 +933,14 @@ class PieceManager:
                                     a.moved=(True,True)
                             if piece.moved == (False,False):
                                 piece.moved = (True,False)
-                    turn = pCol.WHITE if turn==pCol.BLACK else pCol.BLACK
+                            if piece.type==pType.PAWN and piece.pos[1]==(piece.col.value*7):
+                                piece.type=pType.QUEEN
+                    if selected.col == turn:
+                        turn = pCol.WHITE if turn==pCol.BLACK else pCol.BLACK
 
             for piece in self.pieces:
                 piece.selected=False
-                if 50+60*piece.pos[0]-30<mPos[0]<50+60*piece.pos[0]+30 and 100+60*piece.pos[1]-30<mPos[1]<100+60*piece.pos[1]+30:
+                if 50+60*piece.pos[0]-30<mPos[0]<50+60*piece.pos[0]+30 and 100+60*piece.pos[1]-30<mPos[1]<100+60*piece.pos[1]+30 and piece.col==turn:
                     piece.selected = True
         return turn
 
