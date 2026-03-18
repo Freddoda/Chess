@@ -20,7 +20,7 @@ class pCol(Enum):
     WHITE=0
     BLACK=1
 
-@dataclass(frozen=True)
+@dataclass
 class Piece:
     ID : int
     type : pType
@@ -52,7 +52,7 @@ class MoveType(Enum):
     ENPASSANT = 1
     CASTLE = 2
 
-@dataclass(frozen=True)
+@dataclass
 class Move:
     piece : Piece
     pieceID : int
@@ -103,7 +103,7 @@ class Board:
 class MoveCalculator:
     def __init__(self, boardObj : Board):
         self.calculated = False
-        self.moves : set[Move] = set()
+        self.moves : list[Move] = []
         self.boardObj = boardObj
         self.boardArr = boardObj.boardarray
 
@@ -117,9 +117,33 @@ class MoveCalculator:
         self.moves.clear()
         for a in range(8):
             for b in range(8):
-                pass #calculate moves
+                match self.boardArr[a][b].type:
+                    case pType.PAWN:
+                        self.pawnCalculate((a,b))
 
         self.calculated = True
+    
+    def pawnCalculate(self, pos : tuple[int,int]):
+        pawn = self.boardArr[pos[0]][pos[1]]
+
+        if pos[1]-1+2*pawn.col.value>7 or pos[1]-1+2*pawn.col.value<0:
+            return None
+
+        if self.boardArr[pos[0]][pos[1]-1+2*pawn.col.value] == nullPiece():
+            self.moves.append(newMove(pawn,pos,(pos[0],pos[1]-1+2*pawn.col.value)))
+            if pawn.moved == (False,False) and self.boardArr[pos[0]][pos[1]-2+4*pawn.col.value] == nullPiece():
+                self.moves.append(newMove(pawn,pos,(pos[0],pos[1]-2+4*pawn.col.value)))
+        if pos[0]+1<8:
+            if self.boardArr[pos[0]+1][pos[1]-1+2*pawn.col.value] != nullPiece():
+                self.moves.append(newMove(pawn,pos,(pos[0]+1,pos[1]-1+2*pawn.col.value)))
+            if self.boardArr[pos[0]+1][pos[1]].type == pType.PAWN and self.boardArr[pos[0]+1][pos[1]].moved == (True,False):
+                self.moves.append(newMove(pawn,pos,(pos[0]+1,pos[1]-1+2*pawn.col.value),MoveType.ENPASSANT))
+        if pos[0]-1>-1:
+            if self.boardArr[pos[0]-1][pos[1]-1+2*pawn.col.value] != nullPiece():
+                self.moves.append(newMove(pawn,pos,(pos[0]-1,pos[1]-1+2*pawn.col.value)))
+            if self.boardArr[pos[0]-1][pos[1]].type == pType.PAWN and self.boardArr[pos[0]-1][pos[1]].moved == (True,False):
+                self.moves.append(newMove(pawn,pos,(pos[0]-1,pos[1]-1+2*pawn.col.value),MoveType.ENPASSANT))
+
     
     def drawMoves(self, screen : pygame.Surface, selectedID : int):
         for move in self.moves:
@@ -161,8 +185,18 @@ class Chess:
                     for move in self.moveCalc.moves:
                         if move.pieceID == self.IDselect:
                             if (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square)) == move.endpos:
+
+                                for a in range(8):
+                                    for b in range(8):
+                                        if self.boardArr[a][b].moved==(True,False):
+                                            self.boardArr[a][b].moved=(True,True)
+
+                                if not move.piece.moved[0]:
+                                    move.piece.moved=(True,False)
                                 self.boardArr[move.endpos[0]][move.endpos[1]] = move.piece
                                 self.boardArr[move.startpos[0]][move.startpos[1]] = nullPiece()
+                                if move.type == MoveType.ENPASSANT:
+                                    self.boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
                                 self.moveCalc.reCalc()
                                 return None
                             
