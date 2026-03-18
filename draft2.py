@@ -51,6 +51,7 @@ class MoveType(Enum):
     NORMAL = 0
     ENPASSANT = 1
     CASTLE = 2
+    PROMOTE = 3
 
 @dataclass
 class Move:
@@ -115,6 +116,7 @@ class MoveCalculator:
             return None
 
         self.moves.clear()
+        kingpos : list[tuple[int,int]] = []
         for a in range(8):
             for b in range(8):
                 match self.boardArr[a][b].type:
@@ -130,7 +132,11 @@ class MoveCalculator:
                         self.bishopCalculate((a,b))
                         self.rookCalculate((a,b))
                     case pType.KING:
-                        pass
+                        self.kingCalculate((a,b))
+                        kingpos.append((a,b))
+
+        for pos in kingpos:
+            self.checkFinder(pos)
 
         self.calculated = True
     
@@ -214,7 +220,47 @@ class MoveCalculator:
             if (self.boardArr[x + (0 if dir>=2 else (i if dir%2 else -i))][
                 y + (0 if dir<2 else (i if dir%2 else -i))] != nullPiece()):
                 return None
+            
+    def kingCalculate(self, pos : tuple[int,int]):
+        pass
 
+    def subkingCalculate(self, x : int, y : int) -> bool:
+        if not -1<x<8:
+            return False
+        if not -1<y<8:
+            return False
+        
+        for n in range(4):
+            if self.kingrookCalculate(n,x,y):
+                return False
+            if self.kingbishopCalculate(n,x,y):
+                return False
+        
+        return True
+        
+    def kingrookCalculate(self, dir : int, x : int, y : int) -> bool:
+        king=self.boardArr[x][y]
+        for i in range (1,((x if dir<2 else y)*(-1 if dir%2 else 1)+(7 if dir%2 else 0))+1):
+            square = self.boardArr[x + (0 if dir>=2 else (i if dir%2 else -i))][
+                    y + (0 if dir<2 else (i if dir%2 else -i))]
+            if (square != nullPiece()):
+                if (square.col != king.col and square.type==(pType.ROOK or pType.QUEEN)):
+                    return False
+                return True
+        return True
+    
+    def kingbishopCalculate(self, dir : int, x : int, y : int):
+        king=self.boardArr[x][y]
+        for n in range(1,min((7-x if dir%2 == 0 else x),(7-y if dir < 2 else y))+1):
+            square = self.boardArr[x+n if dir%2 == 0 else x-n][y+n if dir<2 else y-n]
+            if (square != nullPiece()):
+                if (square.col != king.col and square.type==(pType.BISHOP or pType.QUEEN)):
+                    return False
+                return True
+        return True
+
+    def checkFinder(self, pos : tuple[int,int]):
+        pass
     
     def drawMoves(self, screen : pygame.Surface, selectedID : int):
         for move in self.moves:
