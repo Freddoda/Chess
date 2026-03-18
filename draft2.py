@@ -207,7 +207,6 @@ class MoveCalculator:
         for i in range (1,((x if dir<2 else y)*(-1 if dir%2 else 1)+(7 if dir%2 else 0))+1):
             if (self.boardArr[x + (0 if dir>=2 else (i if dir%2 else -i))
                 ][y + (0 if dir<2 else (i if dir%2 else -i))].col == rook.col):
-                print(i)
                 return None
             self.moves.append(newMove(rook,(x,y),
                 (x + (0 if dir>=2 else (i if dir%2 else -i)),
@@ -250,32 +249,36 @@ class Chess:
     def select(self, mousepos : tuple[int,int], click : tuple[bool,bool,bool]):
         offset = self.boardObj.bOffset
         square = self.boardObj.squareSize
-        if click[0]:
-            if offset<mousepos[0]<offset+8*square and offset<mousepos[1]<offset+8*square:
-
-                if not self.IDselect == 0:
-                    for move in self.moveCalc.moves:
-                        if move.pieceID == self.IDselect:
-                            if (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square)) == move.endpos:
-
-                                for a in range(8):
-                                    for b in range(8):
-                                        if self.boardArr[a][b].moved==(True,False):
-                                            self.boardArr[a][b].moved=(True,True)
-
-                                if not move.piece.moved[0]:
-                                    move.piece.moved=(True,False)
-                                self.boardArr[move.endpos[0]][move.endpos[1]] = move.piece
-                                self.boardArr[move.startpos[0]][move.startpos[1]] = nullPiece()
-                                if move.type == MoveType.ENPASSANT:
-                                    self.boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
-                                self.moveCalc.reCalc()
-                                return None
-                            
-                self.IDselect = self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)].ID
-                return None
-
+        if not click[0]:
+            return None
+        if not offset<mousepos[0]<offset+8*square and offset<mousepos[1]<offset+8*square:
             self.IDselect = 0
+            return None
+        if self.IDselect == 0:
+            self.IDselect = self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)].ID
+            return None
+
+        for move in self.moveCalc.moves:
+            if move.pieceID == self.IDselect:
+                if (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square)) == move.endpos:
+
+                    for a in range(8):
+                        for b in range(8):
+                            if self.boardArr[a][b].moved==(True,False):
+                                self.boardArr[a][b].moved=(True,True)
+                    if not move.piece.moved[0]:
+                        move.piece.moved=(True,False)
+
+                    self.boardArr[move.endpos[0]][move.endpos[1]] = move.piece
+                    self.boardArr[move.startpos[0]][move.startpos[1]] = nullPiece()
+                    if move.type == MoveType.ENPASSANT:
+                        self.boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
+                    self.moveCalc.reCalc()
+                    return None
+                    
+        self.IDselect = self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)].ID
+        return None
+
     
     def drawSelected(self):
         offset = self.boardObj.bOffset
