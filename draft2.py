@@ -206,7 +206,7 @@ class MoveCalculator:
         rook=self.boardArr[x][y]
         for i in range (1,((x if dir<2 else y)*(-1 if dir%2 else 1)+(7 if dir%2 else 0))+1):
             if (self.boardArr[x + (0 if dir>=2 else (i if dir%2 else -i))
-                ][y + (0 if dir<2 else (-i if not dir%2 else i))].col == rook.col):
+                ][y + (0 if dir<2 else (i if dir%2 else -i))].col == rook.col):
                 print(i)
                 return None
             self.moves.append(newMove(rook,(x,y),
