@@ -123,9 +123,9 @@ class MoveCalculator:
                     case pType.KNIGHT:
                         self.knightCalculate((a,b))
                     case pType.BISHOP:
-                        pass
+                        self.bishopCalculate((a,b))
                     case pType.ROOK:
-                        pass
+                        self.rookCalculate((a,b))
                     case pType.QUEEN:
                         pass
                     case pType.KING:
@@ -144,14 +144,18 @@ class MoveCalculator:
             if pawn.moved == (False,False) and self.boardArr[pos[0]][pos[1]-2+4*pawn.col.value] == nullPiece():
                 self.moves.append(newMove(pawn,pos,(pos[0],pos[1]-2+4*pawn.col.value)))
         if pos[0]+1<8:
-            if self.boardArr[pos[0]+1][pos[1]-1+2*pawn.col.value] != nullPiece():
+            if (self.boardArr[pos[0]+1][pos[1]-1+2*pawn.col.value] != nullPiece() and
+                self.boardArr[pos[0]+1][pos[1]-1+2*pawn.col.value].col != pawn.col):
                 self.moves.append(newMove(pawn,pos,(pos[0]+1,pos[1]-1+2*pawn.col.value)))
-            if self.boardArr[pos[0]+1][pos[1]].type == pType.PAWN and self.boardArr[pos[0]+1][pos[1]].moved == (True,False):
+            if (self.boardArr[pos[0]+1][pos[1]].type == pType.PAWN and self.boardArr[pos[0]+1][pos[1]].moved == (True,False) and
+                self.boardArr[pos[0]+1][pos[1]].col != pawn.col):
                 self.moves.append(newMove(pawn,pos,(pos[0]+1,pos[1]-1+2*pawn.col.value),MoveType.ENPASSANT))
         if pos[0]-1>-1:
-            if self.boardArr[pos[0]-1][pos[1]-1+2*pawn.col.value] != nullPiece():
+            if (self.boardArr[pos[0]-1][pos[1]-1+2*pawn.col.value] != nullPiece() and
+                self.boardArr[pos[0]-1][pos[1]-1+2*pawn.col.value].col != pawn.col):
                 self.moves.append(newMove(pawn,pos,(pos[0]-1,pos[1]-1+2*pawn.col.value)))
-            if self.boardArr[pos[0]-1][pos[1]].type == pType.PAWN and self.boardArr[pos[0]-1][pos[1]].moved == (True,False):
+            if (self.boardArr[pos[0]-1][pos[1]].type == pType.PAWN and self.boardArr[pos[0]-1][pos[1]].moved == (True,False) and
+                self.boardArr[pos[0]-1][pos[1]].col != pawn.col):
                 self.moves.append(newMove(pawn,pos,(pos[0]-1,pos[1]-1+2*pawn.col.value),MoveType.ENPASSANT))
 
     def knightCalculate(self, pos : tuple[int,int]):
@@ -165,7 +169,7 @@ class MoveCalculator:
             return None
         
         knight = self.boardArr[x][y]
-        
+
         for i in range(-1,3,2):
             if -1<((y if (mode==0 or mode==1) else x))+1<8:
                 if self.boardArr[x+(i if not (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2))
@@ -174,7 +178,25 @@ class MoveCalculator:
                     self.moves.append(newMove(knight,(x,y),
                         (x+(i if not (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2)),
                         y+(i if (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2)))))
+                    
+    def bishopCalculate(self, pos : tuple[int,int]):
+        self.subbishopCalculate(0,pos[0],pos[1])
+        self.subbishopCalculate(1,pos[0],pos[1])
+        self.subbishopCalculate(2,pos[0],pos[1])
+        self.subbishopCalculate(3,pos[0],pos[1])
 
+    def subbishopCalculate(self, dir : int, x : int, y : int):
+        bishop=self.boardArr[x][y]
+        for n in range(1,min((7-x if dir%2 == 0 else x),(7-y if dir < 2 else y))+1):
+            if self.boardArr[x+n if dir%2 == 0 else x-n][y+n if dir<2 else y-n].col==bishop.col:
+                return None
+            self.moves.append(newMove(bishop,(x,y),(x+n if dir%2 == 0 else x-n,y+n if dir<2 else y-n)))
+            if self.boardArr[x+n if dir%2 == 0 else x-n][y+n if dir<2 else y-n].col!=pCol.NONE:
+                return None
+
+
+    def rookCalculate(self, pos : tuple[int,int]):
+        pass
     
     def drawMoves(self, screen : pygame.Surface, selectedID : int):
         for move in self.moves:
