@@ -27,7 +27,7 @@ class Piece:
     col : pCol
     moved : tuple[int,int] = (False,False)
 
-def nullPiece():
+def nullPiece() -> Piece:
     return Piece(0,pType.NONE,pCol.NONE)
 
 def getLetter(piece : Piece):
@@ -60,7 +60,7 @@ class Move:
     endpos : tuple[int,int]
     type : MoveType
 
-def newMove(piece : Piece, startpos: tuple[int,int], endpos : tuple[int,int], type : MoveType = MoveType.NORMAL):
+def newMove(piece : Piece, startpos: tuple[int,int], endpos : tuple[int,int], type : MoveType = MoveType.NORMAL) -> Move:
     return Move(piece,piece.ID,startpos,endpos,type)
 
 class Board:
@@ -127,7 +127,8 @@ class MoveCalculator:
                     case pType.ROOK:
                         self.rookCalculate((a,b))
                     case pType.QUEEN:
-                        pass
+                        self.bishopCalculate((a,b))
+                        self.rookCalculate((a,b))
                     case pType.KING:
                         pass
 
@@ -196,7 +197,25 @@ class MoveCalculator:
 
 
     def rookCalculate(self, pos : tuple[int,int]):
-        pass
+        self.subrookCalculate(0,pos[0],pos[1])
+        self.subrookCalculate(1,pos[0],pos[1])
+        self.subrookCalculate(2,pos[0],pos[1])
+        self.subrookCalculate(3,pos[0],pos[1])
+
+    def subrookCalculate(self, dir : int, x : int, y : int):
+        rook=self.boardArr[x][y]
+        for i in range (1,((x if dir<2 else y)*(-1 if dir%2 else 1)+(7 if dir%2 else 0))+1):
+            if (self.boardArr[x + (0 if dir>=2 else (i if dir%2 else -i))
+                ][y + (0 if dir<2 else (-i if not dir%2 else i))].col == rook.col):
+                print(i)
+                return None
+            self.moves.append(newMove(rook,(x,y),
+                (x + (0 if dir>=2 else (i if dir%2 else -i)),
+                 y + (0 if dir<2 else (i if dir%2 else -i)))))
+            if (self.boardArr[x + (0 if dir>=2 else (i if dir%2 else -i))][
+                y + (0 if dir<2 else (i if dir%2 else -i))] != nullPiece()):
+                return None
+
     
     def drawMoves(self, screen : pygame.Surface, selectedID : int):
         for move in self.moves:
