@@ -120,6 +120,16 @@ class MoveCalculator:
                 match self.boardArr[a][b].type:
                     case pType.PAWN:
                         self.pawnCalculate((a,b))
+                    case pType.KNIGHT:
+                        self.knightCalculate((a,b))
+                    case pType.BISHOP:
+                        pass
+                    case pType.ROOK:
+                        pass
+                    case pType.QUEEN:
+                        pass
+                    case pType.KING:
+                        pass
 
         self.calculated = True
     
@@ -143,6 +153,27 @@ class MoveCalculator:
                 self.moves.append(newMove(pawn,pos,(pos[0]-1,pos[1]-1+2*pawn.col.value)))
             if self.boardArr[pos[0]-1][pos[1]].type == pType.PAWN and self.boardArr[pos[0]-1][pos[1]].moved == (True,False):
                 self.moves.append(newMove(pawn,pos,(pos[0]-1,pos[1]-1+2*pawn.col.value),MoveType.ENPASSANT))
+
+    def knightCalculate(self, pos : tuple[int,int]):
+        self.subknightCalculate(0,pos[0],pos[1])
+        self.subknightCalculate(1,pos[0],pos[1])
+        self.subknightCalculate(2,pos[0],pos[1])
+        self.subknightCalculate(3,pos[0],pos[1])
+
+    def subknightCalculate(self, mode : int, x : int, y : int):
+        if not -1<(x if (mode==0 or mode==1) else y)+(2 if (mode==0 or mode==2) else -2)<8:
+            return None
+        
+        knight = self.boardArr[x][y]
+        
+        for i in range(-1,3,2):
+            if -1<((y if (mode==0 or mode==1) else x))+1<8:
+                if self.boardArr[x+(i if not (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2))
+                    ][y+(i if (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2))
+                    ].col != knight.col:
+                    self.moves.append(newMove(knight,(x,y),
+                        (x+(i if not (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2)),
+                        y+(i if (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2)))))
 
     
     def drawMoves(self, screen : pygame.Surface, selectedID : int):
