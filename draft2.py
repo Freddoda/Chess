@@ -222,42 +222,83 @@ class MoveCalculator:
                 return None
             
     def kingCalculate(self, pos : tuple[int,int]):
-        pass
+        king = self.boardArr[pos[0]][pos[1]]
+        for a in range(-1,2):
+            for b in range(-1,2):
+                if a == b and a==0:
+                    pass
+                else:
+                    if self.subkingCalculate(king, pos[0]+a, pos[1]+b):
+                        self.moves.append(newMove(king,pos,( pos[0]+a, pos[1]+b)))
 
-    def subkingCalculate(self, x : int, y : int) -> bool:
+
+    def subkingCalculate(self, king : Piece, x : int, y : int) -> bool:
         if not -1<x<8:
             return False
         if not -1<y<8:
             return False
+        if self.boardArr[x][y].col == king.col:
+            return False
+        
+        if self.kingpawnCalculate((x,y),king):
+            return False
         
         for n in range(4):
-            if self.kingrookCalculate(n,x,y):
+            if self.kingknightCalculate(n,x,y,king):
                 return False
-            if self.kingbishopCalculate(n,x,y):
+            if self.kingrookCalculate(n,x,y,king):
+                return False
+            if self.kingbishopCalculate(n,x,y,king):
                 return False
         
         return True
+
+    def kingpawnCalculate(self, pos : tuple[int,int], king : Piece) -> bool:
+        if pos[1]-1+2*king.col.value>7 or pos[1]-1+2*king.col.value<0:
+            return False
         
-    def kingrookCalculate(self, dir : int, x : int, y : int) -> bool:
-        king=self.boardArr[x][y]
+        if pos[0]+1<8:
+            if (self.boardArr[pos[0]+1][pos[1]-1+2*king.col.value] != nullPiece() and
+                self.boardArr[pos[0]+1][pos[1]-1+2*king.col.value].col != king.col):
+                return True
+            
+        if pos[0]-1>-1:
+            if (self.boardArr[pos[0]-1][pos[1]-1+2*king.col.value] != nullPiece() and
+                self.boardArr[pos[0]-1][pos[1]-1+2*king.col.value].col != king.col):
+                return True
+        
+        return False
+    
+    def kingknightCalculate(self, mode : int, x : int, y : int, king : Piece) -> bool:
+        if not -1<(x if (mode==0 or mode==1) else y)+(2 if (mode==0 or mode==2) else -2)<8:
+            return False
+
+        for i in range(-1,3,2):
+            if -1<((y if (mode==0 or mode==1) else x))+1<8:
+                square = self.boardArr[x+(i if not (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2))
+                        ][y+(i if (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2))]
+                if square.col != king.col and square.type == pType.KNIGHT:
+                    return True
+        return False
+        
+    def kingrookCalculate(self, dir : int, x : int, y : int, king : Piece) -> bool:
         for i in range (1,((x if dir<2 else y)*(-1 if dir%2 else 1)+(7 if dir%2 else 0))+1):
             square = self.boardArr[x + (0 if dir>=2 else (i if dir%2 else -i))][
                     y + (0 if dir<2 else (i if dir%2 else -i))]
             if (square != nullPiece()):
-                if (square.col != king.col and square.type==(pType.ROOK or pType.QUEEN)):
-                    return False
-                return True
-        return True
+                if (square.col != king.col and (square.type==pType.ROOK or square.type==pType.QUEEN)):
+                    return True
+                return False
+        return False
     
-    def kingbishopCalculate(self, dir : int, x : int, y : int):
-        king=self.boardArr[x][y]
+    def kingbishopCalculate(self, dir : int, x : int, y : int, king : Piece) -> bool:
         for n in range(1,min((7-x if dir%2 == 0 else x),(7-y if dir < 2 else y))+1):
             square = self.boardArr[x+n if dir%2 == 0 else x-n][y+n if dir<2 else y-n]
             if (square != nullPiece()):
-                if (square.col != king.col and square.type==(pType.BISHOP or pType.QUEEN)):
-                    return False
-                return True
-        return True
+                if (square.col != king.col and (square.type==pType.BISHOP or square.type==pType.QUEEN)):
+                    return True
+                return False
+        return False
 
     def checkFinder(self, pos : tuple[int,int]):
         pass
