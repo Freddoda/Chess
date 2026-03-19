@@ -107,6 +107,7 @@ class MoveCalculator:
         self.moves : list[Move] = []
         self.boardObj = boardObj
         self.boardArr = boardObj.boardarray
+        self.checkFinder = checkFinder(self)
 
     def reCalc(self):
         self.calculated = False
@@ -136,7 +137,7 @@ class MoveCalculator:
                         kingpos.append((a,b))
 
         for pos in kingpos:
-            self.checkFinder(pos)
+            self.checkFinder.findChecks(pos[0],pos[1])
 
         self.calculated = True
     
@@ -310,9 +311,8 @@ class MoveCalculator:
                     if self.boardArr[x+a][y+b].type==pType.KING and self.boardArr[x+a][y+b].col != king.col:
                         return True
         return False
+        
 
-    def checkFinder(self, pos : tuple[int,int]):
-        pass
     
     def drawMoves(self, screen : pygame.Surface, selectedID : int):
         for move in self.moves:
@@ -320,6 +320,53 @@ class MoveCalculator:
             square = self.boardObj.squareSize
             if move.pieceID == selectedID:
                 pygame.draw.circle(screen,(0,255,0),(offset+square*(move.endpos[0]+0.5),offset+square*(move.endpos[1]+0.5)),15)
+
+class checkFinder:
+    def __init__(self, movecalc : MoveCalculator):
+        self.moves = movecalc.moves
+        self.boardArr = movecalc.boardArr
+
+    def findChecks(self, x : int, y : int):
+        king = self.boardArr[x][y]
+
+        self.pawnHandle(x, y, king)
+
+    def pawnHandle(self, x : int, y : int, king : Piece):
+        if x-1+2*king.col.value>7 or x-1+2*king.col.value<0:
+            return None
+        
+        pawns : list[tuple[int,int]]= []
+        
+        if x+1<8:
+            if (self.boardArr[x+1][y-1+2*king.col.value].type == pType.PAWN and
+                self.boardArr[x+1][y-1+2*king.col.value].col != king.col):
+                pawns.append((x+1,y-1+2*king.col.value))
+            
+        if x-1>-1:
+            if (self.boardArr[x-1][y-1+2*king.col.value].type == pType.PAWN and
+                self.boardArr[x-1][y-1+2*king.col.value].col != king.col):
+                pawns.append((x-1,y-1+2*king.col.value))
+        
+        if len(pawns) == 0:
+            return None
+        
+        n=0
+        while n<len(self.moves):
+            move = self.moves[n]
+            popped = False
+            if move.piece.col == king.col:
+                if len(pawns) == 1:
+                    if not (move.piece == king or move.endpos == pawns[0]):
+                        self.moves.pop(n)
+                        popped=True
+                else:
+                    if move.piece != king:
+                        self.moves.pop(n)
+                        popped=True
+
+            if popped==False:
+                n+=1
+
 
 class Chess:
     def __init__(self, window : pygame.Window, board : Board):
