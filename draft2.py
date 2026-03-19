@@ -250,6 +250,9 @@ class MoveCalculator:
                 return False
             if self.kingbishopCalculate(n,x,y,king):
                 return False
+            
+        if self.kingkingCalculate(king,x,y):
+            return False
         
         return True
 
@@ -258,12 +261,12 @@ class MoveCalculator:
             return False
         
         if pos[0]+1<8:
-            if (self.boardArr[pos[0]+1][pos[1]-1+2*king.col.value] != nullPiece() and
+            if (self.boardArr[pos[0]+1][pos[1]-1+2*king.col.value].type == pType.PAWN and
                 self.boardArr[pos[0]+1][pos[1]-1+2*king.col.value].col != king.col):
                 return True
             
         if pos[0]-1>-1:
-            if (self.boardArr[pos[0]-1][pos[1]-1+2*king.col.value] != nullPiece() and
+            if (self.boardArr[pos[0]-1][pos[1]-1+2*king.col.value].type == pType.PAWN and
                 self.boardArr[pos[0]-1][pos[1]-1+2*king.col.value].col != king.col):
                 return True
         
@@ -298,6 +301,14 @@ class MoveCalculator:
                 if (square.col != king.col and (square.type==pType.BISHOP or square.type==pType.QUEEN)):
                     return True
                 return False
+        return False
+    
+    def kingkingCalculate(self, king : Piece, x : int, y : int) -> bool:
+        for a in range(-1,2):
+            for b in range(-1,2):
+                if -1<x+a<8 and -1<y+b<8:
+                    if self.boardArr[x+a][y+b].type==pType.KING and self.boardArr[x+a][y+b].col != king.col:
+                        return True
         return False
 
     def checkFinder(self, pos : tuple[int,int]):
