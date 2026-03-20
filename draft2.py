@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 import time
 import math
+import copy
 
 pygame.init()
 
@@ -232,6 +233,16 @@ class MoveCalculator:
                     if self.subkingCalculate(king, pos[0]+a, pos[1]+b):
                         self.moves.append(newMove(king,pos,( pos[0]+a, pos[1]+b)))
 
+        if king.moved==(False,False):
+
+            if self.boardArr[0][pos[1]].type==pType.ROOK and self.boardArr[0][pos[1]].moved==(False,False):
+                if self.subkingCalculate(king,pos[0]-1,pos[1]) and self.subkingCalculate(king,pos[0]-2,pos[1]):
+                    if self.boardArr[1][pos[0]] == nullPiece():
+                        self.moves.append(newMove(king,pos,(pos[0]-2,pos[1]),MoveType.CASTLE))
+            
+            if self.boardArr[7][pos[1]].type==pType.ROOK and self.boardArr[7][pos[1]].moved==(False,False):
+                if self.subkingCalculate(king,pos[0]+1,pos[1]) and self.subkingCalculate(king,pos[0]+2,pos[1]):
+                    self.moves.append(newMove(king,pos,(pos[0]+2,pos[1]),MoveType.CASTLE))
 
     def subkingCalculate(self, king : Piece, x : int, y : int) -> bool:
         if not -1<x<8:
@@ -418,6 +429,13 @@ class Chess:
                     self.boardArr[move.startpos[0]][move.startpos[1]] = nullPiece()
                     if move.type == MoveType.ENPASSANT:
                         self.boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
+                    elif move.type == MoveType.CASTLE:
+                        if move.endpos[0]<move.startpos[0]:
+                            self.boardArr[move.endpos[0]+1][move.endpos[1]] = copy.deepcopy(self.boardArr[0][move.endpos[1]])
+                            self.boardArr[0][move.endpos[1]]=nullPiece()
+                        else:
+                            self.boardArr[move.endpos[0]-1][move.endpos[1]] = copy.deepcopy(self.boardArr[7][move.endpos[1]])
+                            self.boardArr[7][move.endpos[1]]=nullPiece()
                     self.moveCalc.reCalc()
                     return None
                     
