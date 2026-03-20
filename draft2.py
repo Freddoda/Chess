@@ -179,7 +179,7 @@ class MoveCalculator:
         knight = self.boardArr[x][y]
 
         for i in range(-1,3,2):
-            if -1<((y if (mode==0 or mode==1) else x))+1<8:
+            if -1<((y if (mode==0 or mode==1) else x))+i<8:
                 if self.boardArr[x+(i if not (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2))
                     ][y+(i if (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2))
                     ].col != knight.col:
