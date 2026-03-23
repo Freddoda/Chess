@@ -324,7 +324,6 @@ class MoveCalculator:
         return False
         
 
-    
     def drawMoves(self, screen : pygame.Surface, selectedID : int):
         for move in self.moves:
             offset = self.boardObj.bOffset
@@ -342,7 +341,8 @@ class checkFinder:
 
         self.pawnHandle(x, y, king)
         self.knightHandle(x, y, king)
-        self.bishopHandle(x,y, king)
+        self.brHandle(x,y, king, True)
+        self.brHandle(x,y, king, False)
 
     def pawnHandle(self, x : int, y : int, king : Piece):
         if x-1+2*king.col.value>7 or x-1+2*king.col.value<0:
@@ -414,15 +414,15 @@ class checkFinder:
         for move in poppedMoves:
             self.moves.pop(self.moves.index(move))
 
-    def bishopHandle(self, x : int, y : int, king : Piece):
+    def brHandle(self, x : int, y : int, king : Piece, mode : bool):
         checks : list[list[tuple[int,int]]] = []
         pins : list[tuple[Piece,list[tuple[int,int]]]] = []
         for dir in range(4):
             between : list[tuple[int,int]] = []
             pin = nullPiece()
             for n in range(1,min((7-x if dir%2 == 0 else x),(7-y if dir < 2 else y))+1):
-                n1 = x+n if dir%2 == 0 else x-n
-                n2 = y+n if dir<2 else y-n
+                n1 = (x+n if dir%2 == 0 else x-n) if mode else (x + (0 if dir>=2 else (n if dir%2 else -n)))
+                n2 = (y+n if dir<2 else y-n) if mode else (y + (0 if dir<2 else (n if dir%2 else -n)))
                 if (self.boardArr[n1][n2] == nullPiece()):
                     between.append((n1,n2))
                     continue
@@ -433,7 +433,7 @@ class checkFinder:
                     pin = self.boardArr[n1][n2]
                     continue
 
-                if (self.boardArr[n1][n2].type==pType.BISHOP or self.boardArr[n1][n2].type==pType.QUEEN):
+                if (self.boardArr[n1][n2].type==(pType.BISHOP if mode else pType.ROOK) or self.boardArr[n1][n2].type==pType.QUEEN):
                     between.append((n1,n2))
                     if pin == nullPiece():
                         checks.append(between)
