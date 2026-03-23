@@ -300,7 +300,7 @@ class MoveCalculator:
         for i in range (1,((x if dir<2 else y)*(-1 if dir%2 else 1)+(7 if dir%2 else 0))+1):
             square = self.boardArr[x + (0 if dir>=2 else (i if dir%2 else -i))][
                     y + (0 if dir<2 else (i if dir%2 else -i))]
-            if (square != nullPiece()):
+            if (square != nullPiece() and square != king):
                 if (square.col != king.col and (square.type==pType.ROOK or square.type==pType.QUEEN)):
                     return True
                 return False
@@ -309,7 +309,7 @@ class MoveCalculator:
     def kingbishopCalculate(self, dir : int, x : int, y : int, king : Piece) -> bool:
         for n in range(1,min((7-x if dir%2 == 0 else x),(7-y if dir < 2 else y))+1):
             square = self.boardArr[x+n if dir%2 == 0 else x-n][y+n if dir<2 else y-n]
-            if (square != nullPiece()):
+            if (square != nullPiece() and square != king):
                 if (square.col != king.col and (square.type==pType.BISHOP or square.type==pType.QUEEN)):
                     return True
                 return False
@@ -342,6 +342,7 @@ class checkFinder:
 
         self.pawnHandle(x, y, king)
         self.knightHandle(x, y, king)
+        self.bishopHandle(x,y, king)
 
     def pawnHandle(self, x : int, y : int, king : Piece):
         if x-1+2*king.col.value>7 or x-1+2*king.col.value<0:
@@ -397,8 +398,6 @@ class checkFinder:
         if len(knights) == 0:
             return None
         
-        print(knights)
-        
         poppedMoves : list[Move] = []
         for move in self.moves:
             if move.piece.col != king.col:
@@ -413,6 +412,52 @@ class checkFinder:
             poppedMoves.append(move)
 
         for move in poppedMoves:
+            self.moves.pop(self.moves.index(move))
+
+    def bishopHandle(self, x : int, y : int, king : Piece):
+        checks : list[list[tuple[int,int]]] = []
+        pins : list[tuple[Piece,list[tuple[int,int]]]] = []
+        for dir in range(4):
+            between : list[tuple[int,int]] = []
+            pin = nullPiece()
+            for n in range(1,min((7-x if dir%2 == 0 else x),(7-y if dir < 2 else y))+1):
+                n1 = x+n if dir%2 == 0 else x-n
+                n2 = y+n if dir<2 else y-n
+                if (self.boardArr[n1][n2] == nullPiece()):
+                    between.append((n1,n2))
+                    continue
+
+                if self.boardArr[n1][n2].col == king.col:
+                    if not pin==nullPiece():
+                        break
+                    pin = self.boardArr[n1][n2]
+                    continue
+
+                if (self.boardArr[n1][n2].type==pType.BISHOP or self.boardArr[n1][n2].type==pType.QUEEN):
+                    between.append((n1,n2))
+                    if pin == nullPiece():
+                        checks.append(between)
+                    else:
+                        pins.append((pin,between))
+                break
+        
+        poppedmoves = []
+        for move in self.moves:
+            if move.piece.col != king.col:
+                continue
+            if move.piece == king:
+                continue
+
+            for check in checks:
+                if not move.endpos in check:
+                    poppedmoves.append(move)
+            
+            for pinn in pins:
+                if move.piece == pinn[0]:
+                    if not move.endpos in pinn[1]:
+                        poppedmoves.append(move)
+
+        for move in poppedmoves:
             self.moves.pop(self.moves.index(move))
 
 
