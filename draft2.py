@@ -341,6 +341,7 @@ class checkFinder:
         king = self.boardArr[x][y]
 
         self.pawnHandle(x, y, king)
+        self.knightHandle(x, y, king)
 
     def pawnHandle(self, x : int, y : int, king : Piece):
         if x-1+2*king.col.value>7 or x-1+2*king.col.value<0:
@@ -377,6 +378,42 @@ class checkFinder:
 
             if popped==False:
                 n+=1
+
+    def knightHandle(self,  x : int, y : int, king : Piece):
+        knights : list[tuple[int,int]] = []
+        for mode in range(4):
+            if not -1<(x if (mode==0 or mode==1) else y)+(2 if (mode==0 or mode==2) else -2)<8:
+                continue
+
+            for i in range(-1,3,2):
+                if not -1<((y if (mode==0 or mode==1) else x))+i<8:
+                    continue
+
+                n1 = x+(i if not (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2))
+                n2 = y+(i if (mode == 0 or mode == 1) else (2 if (mode==0 or mode==2) else -2))
+                if self.boardArr[n1][n2].col != king.col and self.boardArr[n1][n2].type == pType.KNIGHT:
+                    knights.append((n1,n2))
+        
+        if len(knights) == 0:
+            return None
+        
+        print(knights)
+        
+        poppedMoves : list[Move] = []
+        for move in self.moves:
+            if move.piece.col != king.col:
+                continue
+
+            if move.piece == king:
+                continue
+
+            if len(knights) == 1 and move.endpos==knights[0]:
+                continue
+
+            poppedMoves.append(move)
+
+        for move in poppedMoves:
+            self.moves.pop(self.moves.index(move))
 
 
 class Chess:
