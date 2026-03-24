@@ -420,7 +420,8 @@ class checkFinder:
         for dir in range(4):
             between : list[tuple[int,int]] = []
             pin = nullPiece()
-            for n in range(1,min((7-x if dir%2 == 0 else x),(7-y if dir < 2 else y))+1):
+            for n in range(1,((min((7-x if dir%2 == 0 else x),(7-y if dir < 2 else y))) if mode else 
+                              ((x if dir<2 else y)*(-1 if dir%2 else 1)+(7 if dir%2 else 0)))+1):
                 n1 = (x+n if dir%2 == 0 else x-n) if mode else (x + (0 if dir>=2 else (n if dir%2 else -n)))
                 n2 = (y+n if dir<2 else y-n) if mode else (y + (0 if dir<2 else (n if dir%2 else -n)))
                 if (self.boardArr[n1][n2] == nullPiece()):
