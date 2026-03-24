@@ -117,6 +117,7 @@ class MoveCalculator:
 
     def setBoard(self, boardArr : list[list[Piece]]):
         self.boardArr = boardArr
+        self.checkFinder.boardArr = boardArr
 
     def calculate(self):
         if self.calculated:
@@ -479,22 +480,30 @@ class Position:
         self.nextPos = copy.deepcopy(nextPos)
 
 class Bot:
-    def __init__(self, colour : pCol, depth : int = 5):
+    def __init__(self, colour : pCol, depth : int = 10):
         self.moveCalc = MoveCalculator([])
         self.col = colour
         self.calculating = False
-        self.result
-        self.executor = concurrent.futures.ProcessPoolExecutor()
+        self.result : concurrent.futures.Future
+        self.executor = concurrent.futures.ThreadPoolExecutor()
+        self.depth = depth
     
     def botcalc(self, boardArr : list[list[Piece]], turn : pCol):
         if turn == self.col and not self.calculating:
             self.result = self.executor.submit(self.calculate, boardArr)
             self.calculating=True
+        
+        if self.calculating: 
+            if self.result.done():
+                print(self.result)
+
+    def recalc(self):
+        self.calculating=False
 
     def calculate(self, boardArr : list[list[Piece]]) -> Move:
         currentPos = Position(boardArr)
         turn = self.col
-        for i in range(5):
+        for i in range(self.depth):
             self.posCalc(currentPos,turn)
 
         return newMove(nullPiece(),(0,0),(0,0))
@@ -515,6 +524,7 @@ class Bot:
                 continue
             iterator+=1
         position.giveMoves(self.moveCalc.moves)
+        self.posProcessor(position)
     
     def posProcessor(self, position : Position):
         posList = []
@@ -563,6 +573,8 @@ class Chess:
     def update(self, mousepos : tuple[int,int], click : tuple[bool,bool,bool]):
         self.select(mousepos,click)
         self.moveCalc.calculate()
+        if self.isbot:
+            self.bot.botcalc(self.boardArr,self.turn)
     
     def draw(self):
         self.screen.fill((128,128,128))
@@ -609,6 +621,8 @@ class Chess:
                             self.boardArr[7][move.endpos[1]]=nullPiece()
                     self.moveCalc.reCalc()
                     self.turn=pCol(self.turn.value*(-1)+1)
+                    if self.isbot:
+                        self.bot.recalc()
                     return None
                     
         self.IDselect = self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)].ID
@@ -633,7 +647,7 @@ piecesize = 50
 
 window = pygame.Window("Chess",(2*bOffset+8*squareSize,2*bOffset+8*squareSize))
 board = Board(squareSize,bOffset,piecesize)
-game = Chess(window,board)
+game = Chess(window,board,True)
 
 interval = 0.016666667
 
