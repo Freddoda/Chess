@@ -1,9 +1,11 @@
+from __future__ import annotations
 import pygame
 from dataclasses import dataclass
 from enum import Enum
 import time
 import math
 import copy
+import concurrent.futures
 
 pygame.init()
 
@@ -103,15 +105,18 @@ class Board:
                                       self.bOffset+(b+0.5)*self.squareSize-self.pieceSize*0.5-3))
                     
 class MoveCalculator:
-    def __init__(self, boardObj : Board):
+    def __init__(self, boardArr : list[list[Piece]], boardObj : Board = Board(0,0,0)):
         self.calculated = False
         self.moves : list[Move] = []
+        self.boardArr = boardArr
         self.boardObj = boardObj
-        self.boardArr = boardObj.boardarray
         self.checkFinder = checkFinder(self)
 
     def reCalc(self):
         self.calculated = False
+
+    def setBoard(self, boardArr : list[list[Piece]]):
+        self.boardArr = boardArr
 
     def calculate(self):
         if self.calculated:
@@ -324,11 +329,11 @@ class MoveCalculator:
         return False
         
 
-    def drawMoves(self, screen : pygame.Surface, selectedID : int):
+    def drawMoves(self, screen : pygame.Surface, selectedID : int, turn : pCol):
         for move in self.moves:
             offset = self.boardObj.bOffset
             square = self.boardObj.squareSize
-            if move.pieceID == selectedID:
+            if move.pieceID == selectedID and move.piece.col==turn:
                 pygame.draw.circle(screen,(0,255,0),(offset+square*(move.endpos[0]+0.5),offset+square*(move.endpos[1]+0.5)),15)
 
 class checkFinder:
@@ -461,16 +466,41 @@ class checkFinder:
         for move in poppedmoves:
             self.moves.pop(self.moves.index(move))
 
+class Position:
+    def __init__(self, boardArr : list[list[Piece]]):
+        self.boardArr = boardArr
+        self.moves : list[Move] = []
+        self.nextPos = []
+    
+    def giveMoves(self, moves : list[Move]):
+        self.moves = moves
+    
+    def givePos(self, nextPos : list[Position]):
+        self.nextPos = nextPos
+
+class Bot:
+    def __init__(self, colour : pCol):
+        moveCalc = MoveCalculator([])
+        self.col = colour
+        self.calculating = False
+    
 
 class Chess:
-    def __init__(self, window : pygame.Window, board : Board):
+    def __init__(self, window : pygame.Window, board : Board, bot : bool = False, playerCol : pCol = pCol.WHITE):
         self.window = window
         self.screen = window.get_surface()
         self.boardObj = board
         self.boardArr = board.boardarray
-        self.moveCalc = MoveCalculator(self.boardObj)
+        self.moveCalc = MoveCalculator(self.boardArr,self.boardObj)
         self.moveSet = self.moveCalc.moves
         self.IDselect = 0
+        self.turn : pCol = pCol.WHITE
+        self.isbot = bot
+        self.bot : Bot
+        self.playerCol : pCol
+        if bot:
+            self.bot = Bot(pCol(playerCol.value*(-1)+1))
+            self.playerCol = playerCol
 
     def update(self, mousepos : tuple[int,int], click : tuple[bool,bool,bool]):
         self.select(mousepos,click)
@@ -481,7 +511,7 @@ class Chess:
 
         self.boardObj.draw(self.screen)
         self.drawSelected()
-        self.moveCalc.drawMoves(self.screen,self.IDselect)
+        self.moveCalc.drawMoves(self.screen,self.IDselect,self.turn)
 
         self.window.flip()
 
@@ -498,7 +528,7 @@ class Chess:
             return None
 
         for move in self.moveCalc.moves:
-            if move.pieceID == self.IDselect:
+            if move.pieceID == self.IDselect and move.piece.col == self.turn and (self.turn == self.playerCol if self.isbot else True):
                 if (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square)) == move.endpos:
 
                     for a in range(8):
@@ -520,6 +550,7 @@ class Chess:
                             self.boardArr[move.endpos[0]-1][move.endpos[1]] = copy.deepcopy(self.boardArr[7][move.endpos[1]])
                             self.boardArr[7][move.endpos[1]]=nullPiece()
                     self.moveCalc.reCalc()
+                    self.turn=pCol(self.turn.value*(-1)+1)
                     return None
                     
         self.IDselect = self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)].ID
