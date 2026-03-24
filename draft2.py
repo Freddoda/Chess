@@ -118,7 +118,7 @@ class MoveCalculator:
     def setBoard(self, boardArr : list[list[Piece]]):
         self.boardArr = boardArr
 
-    def calculate(self):
+    def calculate(self, turn : pCol):
         if self.calculated:
             return None
 
@@ -126,6 +126,9 @@ class MoveCalculator:
         kingpos : list[tuple[int,int]] = []
         for a in range(8):
             for b in range(8):
+                if turn != self.boardArr[a][b].col:
+                    continue
+
                 match self.boardArr[a][b].type:
                     case pType.PAWN:
                         self.pawnCalculate((a,b))
@@ -507,13 +510,7 @@ class Bot:
         
         self.moveCalc.reCalc()
         self.moveCalc.setBoard(position.boardArr)
-        self.moveCalc.calculate()
-        iterator = 0
-        while iterator < len(self.moveCalc.moves):
-            if self.moveCalc.moves[iterator].piece.col!=turn:
-                self.moveCalc.moves.pop(iterator)
-                continue
-            iterator+=1
+        self.moveCalc.calculate(turn)
         position.giveMoves(self.moveCalc.moves)
     
     def posProcessor(self, position : Position):
@@ -562,7 +559,7 @@ class Chess:
 
     def update(self, mousepos : tuple[int,int], click : tuple[bool,bool,bool]):
         self.select(mousepos,click)
-        self.moveCalc.calculate()
+        self.moveCalc.calculate(self.turn)
     
     def draw(self):
         self.screen.fill((128,128,128))
