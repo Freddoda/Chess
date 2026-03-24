@@ -471,8 +471,12 @@ class checkFinder:
             self.moves.pop(self.moves.index(move))
 
 class Position:
-    def __init__(self, boardArr : list[list[Piece]]):
+    def __init__(self, boardArr : list[list[Piece]], botCol : pCol):
         self.boardArr = boardArr
+        self.materialBal : int = 0
+        ((self.materialBal + 
+          self.materialVal(square) * ((1 if square.col == botCol else -1) if square != nullPiece() else 0) 
+          for square in row) for row in self.boardArr)
         self.moves : list[Move] = []
         self.nextPos : list[Position] = []
     
@@ -481,9 +485,24 @@ class Position:
     
     def givePos(self, nextPos : list[Position]):
         self.nextPos = copy.deepcopy(nextPos)
+    
+    def materialVal(self, piece : Piece) -> int:
+        match (piece):
+            case pType.PAWN:
+                return 1
+            case pType.KNIGHT:
+                return 3
+            case pType.BISHOP:
+                return 3
+            case pType.ROOK:
+                return 5
+            case pType.QUEEN:
+                return 9
+            case _:
+                return 0
 
 class Bot:
-    def __init__(self, colour : pCol, depth : int = 10):
+    def __init__(self, colour : pCol, depth : int = 10, filtering : bool = True):
         self.moveCalc = MoveCalculator([])
         self.col = colour
         self.calculating = False
@@ -504,7 +523,7 @@ class Bot:
         self.calculating=False
 
     def calculate(self, boardArr : list[list[Piece]]) -> Move:
-        currentPos = Position(boardArr)
+        currentPos = Position(boardArr, self.col)
         turn = self.col
         for i in range(self.depth):
             self.posCalc(currentPos,turn)
@@ -547,7 +566,7 @@ class Bot:
                     boardArr[move.endpos[0]-1][move.endpos[1]] = copy.deepcopy(boardArr[7][move.endpos[1]])
                     boardArr[7][move.endpos[1]]=nullPiece()
 
-            posList.append(Position(copy.deepcopy(boardArr)))
+            posList.append(Position(copy.deepcopy(boardArr), self.col))
         position.givePos(posList)
 
 class Chess:
