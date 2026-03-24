@@ -470,20 +470,78 @@ class Position:
     def __init__(self, boardArr : list[list[Piece]]):
         self.boardArr = boardArr
         self.moves : list[Move] = []
-        self.nextPos = []
+        self.nextPos : list[Position] = []
     
     def giveMoves(self, moves : list[Move]):
-        self.moves = moves
+        self.moves = copy.deepcopy(moves)
     
     def givePos(self, nextPos : list[Position]):
-        self.nextPos = nextPos
+        self.nextPos = copy.deepcopy(nextPos)
 
 class Bot:
-    def __init__(self, colour : pCol):
-        moveCalc = MoveCalculator([])
+    def __init__(self, colour : pCol, depth : int = 5):
+        self.moveCalc = MoveCalculator([])
         self.col = colour
         self.calculating = False
+        self.result
+        self.executor = concurrent.futures.ProcessPoolExecutor()
     
+    def botcalc(self, boardArr : list[list[Piece]], turn : pCol):
+        if turn == self.col and not self.calculating:
+            self.result = self.executor.submit(self.calculate, boardArr)
+            self.calculating=True
+
+    def calculate(self, boardArr : list[list[Piece]]) -> Move:
+        currentPos = Position(boardArr)
+        turn = self.col
+        for i in range(5):
+            self.posCalc(currentPos,turn)
+
+        return newMove(nullPiece(),(0,0),(0,0))
+    
+    def posCalc(self, position : Position, turn : pCol):
+        if len(position.nextPos)>0:
+            for pos in position.nextPos:
+                self.posCalc(pos, pCol(turn.value*(-1)+1))
+            return None
+        
+        self.moveCalc.reCalc()
+        self.moveCalc.setBoard(position.boardArr)
+        self.moveCalc.calculate()
+        iterator = 0
+        while iterator < len(self.moveCalc.moves):
+            if self.moveCalc.moves[iterator].piece.col!=turn:
+                self.moveCalc.moves.pop(iterator)
+                continue
+            iterator+=1
+        position.giveMoves(self.moveCalc.moves)
+    
+    def posProcessor(self, position : Position):
+        posList = []
+        for move in position.moves:
+            boardArr = copy.deepcopy(position.boardArr)
+
+            for a in range(8):
+                for b in range(8):
+                    if boardArr[a][b].moved==(True,False):
+                        boardArr[a][b].moved=(True,True)
+            if not move.piece.moved[0]:
+                move.piece.moved=(True,False)
+
+            boardArr[move.endpos[0]][move.endpos[1]] = move.piece
+            boardArr[move.startpos[0]][move.startpos[1]] = nullPiece()
+            if move.type == MoveType.ENPASSANT:
+                boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
+            elif move.type == MoveType.CASTLE:
+                if move.endpos[0]<move.startpos[0]:
+                    boardArr[move.endpos[0]+1][move.endpos[1]] = copy.deepcopy(boardArr[0][move.endpos[1]])
+                    boardArr[0][move.endpos[1]]=nullPiece()
+                else:
+                    boardArr[move.endpos[0]-1][move.endpos[1]] = copy.deepcopy(boardArr[7][move.endpos[1]])
+                    boardArr[7][move.endpos[1]]=nullPiece()
+
+            posList.append(Position(copy.deepcopy(boardArr)))
+        position.givePos(posList)
 
 class Chess:
     def __init__(self, window : pygame.Window, board : Board, bot : bool = False, playerCol : pCol = pCol.WHITE):
