@@ -470,15 +470,25 @@ class checkFinder:
         for move in poppedmoves:
             self.moves.pop(self.moves.index(move))
 
+class posState(Enum):
+    ACTIVE = 0
+    STALEMATE = 1
+    CHECKMATE = 2
+
 class Position:
-    def __init__(self, boardArr : list[list[Piece]], botCol : pCol):
+    def __init__(self, boardArr : list[list[Piece]], turn : pCol, state : posState = posState.ACTIVE):
         self.boardArr = boardArr
         self.materialBal : int = 0
-        ((self.materialBal + 
-          self.materialVal(square) * ((1 if square.col == botCol else -1) if square != nullPiece() else 0) 
-          for square in row) for row in self.boardArr)
+        self.state = state
+        if self.state == posState.ACTIVE:
+            ((self.materialBal + 
+            self.materialVal(square) * ((1 if square.col == turn else -1) if square != nullPiece() else 0) 
+            for square in row) for row in self.boardArr)
+        elif self.state == posState.CHECKMATE:
+            self.materialBal = -50
         self.moves : list[Move] = []
         self.nextPos : list[Position] = []
+        self.turn = turn
     
     def giveMoves(self, moves : list[Move]):
         self.moves = copy.deepcopy(moves)
@@ -500,15 +510,32 @@ class Position:
                 return 9
             case _:
                 return 0
+            
+    def giveState(self, state : posState):
+        self.materialBal=0
+        match (state):
+            case posState.ACTIVE:
+                ((self.materialBal + 
+                self.materialVal(square) * ((1 if square.col == self.turn else -1) if square != nullPiece() else 0) 
+                for square in row) for row in self.boardArr)
+            case posState.CHECKMATE:
+                self.materialBal = -50
+            case posState.STALEMATE:
+                pass
 
 class Bot:
-    def __init__(self, colour : pCol, depth : int = 10, filtering : bool = True):
+    def __init__(self, colour : pCol, depth : int = 5, filtering : bool = True):
         self.moveCalc = MoveCalculator([])
         self.col = colour
         self.calculating = False
         self.result : concurrent.futures.Future
         self.executor = concurrent.futures.ThreadPoolExecutor()
         self.depth = depth
+        self.filtering = filtering
+        self.quitted = False
+    
+    def quit(self):
+        self.quitted = True
     
     def botcalc(self, boardArr : list[list[Piece]], turn : pCol):
         if turn == self.col and not self.calculating:
@@ -526,21 +553,37 @@ class Bot:
         currentPos = Position(boardArr, self.col)
         turn = self.col
         for i in range(self.depth):
-            self.posCalc(currentPos,turn)
+            self.posCalc(currentPos)
+
+            if self.filtering:
+                pass
 
         return newMove(nullPiece(),(0,0),(0,0))
     
-    def posCalc(self, position : Position, turn : pCol):
+    def posCalc(self, position : Position):
+        if self.quitted:
+            return None
+
         if len(position.nextPos)>0:
             for pos in position.nextPos:
-                self.posCalc(pos, pCol(turn.value*(-1)+1))
+                self.posCalc(pos)
             return None
         
         self.moveCalc.reCalc()
         self.moveCalc.setBoard(position.boardArr)
-        self.moveCalc.calculate(turn)
+        self.moveCalc.calculate(position.turn)
         position.giveMoves(self.moveCalc.moves)
-        self.posProcessor(position)
+        if len(position.moves)>0:
+            self.posProcessor(position)
+            return None
+        
+        position.giveState(posState.STALEMATE)
+        
+        for x in range(8):
+            for y in range(8):
+                if position.boardArr[x][y].type == pType.KING and position.boardArr[x][y].col == position.turn:
+                    if not self.moveCalc.subkingCalculate(position.boardArr[x][y],x,y):
+                        position.giveState(posState.CHECKMATE)
     
     def posProcessor(self, position : Position):
         posList = []
@@ -566,7 +609,7 @@ class Bot:
                     boardArr[move.endpos[0]-1][move.endpos[1]] = copy.deepcopy(boardArr[7][move.endpos[1]])
                     boardArr[7][move.endpos[1]]=nullPiece()
 
-            posList.append(Position(copy.deepcopy(boardArr), self.col))
+            posList.append(Position(copy.deepcopy(boardArr), pCol(position.turn.value*(-1)+1)))
         position.givePos(posList)
 
 class Chess:
@@ -657,6 +700,10 @@ class Chess:
                         y = b
 
             pygame.draw.circle(self.screen,(255,0,0),(offset+square*(x+0.5),offset+square*(y+0.5)),5)
+    
+    def quit(self):
+        if self.isbot:
+            self.bot.quit()
 
 bOffset = 20
 squareSize = 80
@@ -690,6 +737,6 @@ while Running:
     finish = time.time_ns()
     sleepT = max(0,interval - (finish-start)/1000000000)
     time.sleep(sleepT)
-    
 
+game.quit()
 pygame.quit()
