@@ -584,8 +584,6 @@ class Bot:
         end = time.time_ns()
         position.giveMoves(self.moveCalc.moves)
         if len(position.moves)>0:
-            while threading.active_count()>=self.executor._max_workers:
-                pass
             self.posThreads.append(self.executor.submit(self.posProcessor,position))
             #self.posProcessor(position)
             return None
