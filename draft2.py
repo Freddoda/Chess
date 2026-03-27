@@ -530,6 +530,7 @@ class Bot:
         self.calculating = False
         self.result : concurrent.futures.Future
         self.executor = concurrent.futures.ThreadPoolExecutor()
+        self.posThreads : list[concurrent.futures.Future] = []
         self.depth = depth
         self.filtering = filtering
         self.quitted = False
@@ -551,12 +552,16 @@ class Bot:
 
     def calculate(self, boardArr : list[list[Piece]]) -> Move:
         currentPos = Position(boardArr, self.col)
-        turn = self.col
+        start = time.time_ns()
+        n=0
         for i in range(self.depth):
             self.posCalc(currentPos)
 
             if self.filtering:
                 pass
+            
+            n+=1
+            print(f"{n}={(time.time_ns()-start)/1000000000}")
 
         return newMove(nullPiece(),(0,0),(0,0))
     
@@ -564,17 +569,24 @@ class Bot:
         if self.quitted:
             return None
 
-        if len(position.nextPos)>0:
+        if len(position.moves)>0:
             for pos in position.nextPos:
                 self.posCalc(pos)
+            for pos in self.posThreads:
+                pos.result()
+            self.posThreads.clear()
             return None
         
         self.moveCalc.reCalc()
         self.moveCalc.setBoard(position.boardArr)
         self.moveCalc.calculate(position.turn)
+        end = time.time_ns()
         position.giveMoves(self.moveCalc.moves)
         if len(position.moves)>0:
-            self.posProcessor(position)
+            while sum(1 for thr in self.posThreads if not thr.done)>=self.executor._max_workers:
+                pass
+            self.posThreads.append(self.executor.submit(self.posProcessor,position))
+            #self.posProcessor(position)
             return None
         
         position.giveState(posState.STALEMATE)
