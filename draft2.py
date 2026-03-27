@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from enum import Enum
 import time
 import math
-import copy
+import pickle
 import concurrent.futures
-import threading
+
 
 pygame.init()
 
@@ -492,10 +492,10 @@ class Position:
         self.turn = turn
     
     def giveMoves(self, moves : list[Move]):
-        self.moves = copy.deepcopy(moves)
+        self.moves = moves
     
     def givePos(self, nextPos : list[Position]):
-        self.nextPos = copy.deepcopy(nextPos)
+        self.nextPos = nextPos
     
     def materialVal(self, piece : Piece) -> int:
         match (piece):
@@ -525,7 +525,7 @@ class Position:
                 pass
 
 class Bot:
-    def __init__(self, colour : pCol, depth : int = 5, filtering : bool = True):
+    def __init__(self, colour : pCol, depth : int = 10, filtering : bool = True):
         self.moveCalc = MoveCalculator([])
         self.col = colour
         self.calculating = False
@@ -546,7 +546,7 @@ class Bot:
         
         if self.calculating: 
             if self.result.done():
-                print(self.result)
+                pass
 
     def recalc(self):
         self.calculating=False
@@ -581,7 +581,6 @@ class Bot:
         self.moveCalc.reCalc()
         self.moveCalc.setBoard(position.boardArr)
         self.moveCalc.calculate(position.turn)
-        end = time.time_ns()
         position.giveMoves(self.moveCalc.moves)
         if len(position.moves)>0:
             self.posThreads.append(self.executor.submit(self.posProcessor,position))
@@ -599,7 +598,7 @@ class Bot:
     def posProcessor(self, position : Position):
         posList = []
         for move in position.moves:
-            boardArr = copy.deepcopy(position.boardArr)
+            boardArr = pickle.loads(pickle.dumps(position.boardArr))
 
             for a in range(8):
                 for b in range(8):
@@ -614,13 +613,12 @@ class Bot:
                 boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
             elif move.type == MoveType.CASTLE:
                 if move.endpos[0]<move.startpos[0]:
-                    boardArr[move.endpos[0]+1][move.endpos[1]] = copy.deepcopy(boardArr[0][move.endpos[1]])
+                    boardArr[move.endpos[0]+1][move.endpos[1]] = boardArr[0][move.endpos[1]]
                     boardArr[0][move.endpos[1]]=nullPiece()
                 else:
-                    boardArr[move.endpos[0]-1][move.endpos[1]] = copy.deepcopy(boardArr[7][move.endpos[1]])
+                    boardArr[move.endpos[0]-1][move.endpos[1]] = boardArr[7][move.endpos[1]]
                     boardArr[7][move.endpos[1]]=nullPiece()
-
-            posList.append(Position(copy.deepcopy(boardArr), pCol(position.turn.value*(-1)+1)))
+            posList.append(Position(boardArr, pCol(position.turn.value*(-1)+1)))
         position.givePos(posList)
 
 class Chess:
@@ -661,7 +659,7 @@ class Chess:
         square = self.boardObj.squareSize
         if not click[0]:
             return None
-        if not offset<mousepos[0]<offset+8*square and offset<mousepos[1]<offset+8*square:
+        if not (offset<mousepos[0]<offset+8*square and offset<mousepos[1]<offset+8*square):
             self.IDselect = 0
             return None
         if self.IDselect == 0:
@@ -685,10 +683,10 @@ class Chess:
                         self.boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
                     elif move.type == MoveType.CASTLE:
                         if move.endpos[0]<move.startpos[0]:
-                            self.boardArr[move.endpos[0]+1][move.endpos[1]] = copy.deepcopy(self.boardArr[0][move.endpos[1]])
+                            self.boardArr[move.endpos[0]+1][move.endpos[1]] = self.boardArr[0][move.endpos[1]]
                             self.boardArr[0][move.endpos[1]]=nullPiece()
                         else:
-                            self.boardArr[move.endpos[0]-1][move.endpos[1]] = copy.deepcopy(self.boardArr[7][move.endpos[1]])
+                            self.boardArr[move.endpos[0]-1][move.endpos[1]] = self.boardArr[7][move.endpos[1]]
                             self.boardArr[7][move.endpos[1]]=nullPiece()
                     self.moveCalc.reCalc()
                     self.turn=pCol(self.turn.value*(-1)+1)
