@@ -6,6 +6,7 @@ import time
 import math
 import copy
 import concurrent.futures
+import threading
 
 pygame.init()
 
@@ -583,7 +584,7 @@ class Bot:
         end = time.time_ns()
         position.giveMoves(self.moveCalc.moves)
         if len(position.moves)>0:
-            while sum(1 for thr in self.posThreads if not thr.done)>=self.executor._max_workers:
+            while threading.active_count()>=self.executor._max_workers:
                 pass
             self.posThreads.append(self.executor.submit(self.posProcessor,position))
             #self.posProcessor(position)
