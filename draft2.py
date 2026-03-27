@@ -478,7 +478,7 @@ class posState(Enum):
 
 class Position:
     def __init__(self, boardArr : list[list[Piece]], turn : pCol, state : posState = posState.ACTIVE):
-        self.boardArr = boardArr
+        self.boardArr = tuple(tuple(column) for column in boardArr)
         self.materialBal : int = 0
         self.state = state
         if self.state == posState.ACTIVE:
@@ -490,6 +490,9 @@ class Position:
         self.moves : list[Move] = []
         self.nextPos : list[Position] = []
         self.turn = turn
+
+    def getBoard(self) -> list[list[Piece]]:
+        return list(list(column) for column in self.boardArr)
     
     def giveMoves(self, moves : list[Move]):
         self.moves = moves
@@ -578,13 +581,16 @@ class Bot:
             self.posThreads.clear()
             return None
         
+        start=time.time_ns()
         self.moveCalc.reCalc()
-        self.moveCalc.setBoard(position.boardArr)
+        self.moveCalc.setBoard(position.getBoard())
         self.moveCalc.calculate(position.turn)
         position.giveMoves(self.moveCalc.moves)
+        print(f"1={(time.time_ns()-start)/1000000}")
         if len(position.moves)>0:
-            self.posThreads.append(self.executor.submit(self.posProcessor,position))
-            #self.posProcessor(position)
+            #self.posThreads.append(self.executor.submit(self.posProcessor,position))
+            self.posProcessor(position)
+            print(f"2={(time.time_ns()-start)/1000000}")
             return None
         
         position.giveState(posState.STALEMATE)
@@ -598,7 +604,7 @@ class Bot:
     def posProcessor(self, position : Position):
         posList = []
         for move in position.moves:
-            boardArr = pickle.loads(pickle.dumps(position.boardArr))
+            boardArr = position.getBoard()
 
             for a in range(8):
                 for b in range(8):
