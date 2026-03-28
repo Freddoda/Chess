@@ -1,14 +1,9 @@
 from __future__ import annotations
-import pygame
 from dataclasses import dataclass
 from enum import Enum
 import time
 import math
-import pickle
 import concurrent.futures
-
-
-pygame.init()
 
 class pType(Enum):
     NONE=-1
@@ -488,7 +483,7 @@ class Position:
         elif self.state == posState.CHECKMATE:
             self.materialBal = -50
         self.moves : list[Move] = []
-        self.nextPos : list[Position] = []
+        self.nextPos : tuple = ()
         self.turn = turn
 
     def getBoard(self) -> list[list[Piece]]:
@@ -497,7 +492,7 @@ class Position:
     def giveMoves(self, moves : list[Move]):
         self.moves = moves
     
-    def givePos(self, nextPos : list[Position]):
+    def givePos(self, nextPos : tuple):
         self.nextPos = nextPos
     
     def materialVal(self, piece : Piece) -> int:
@@ -528,13 +523,11 @@ class Position:
                 pass
 
 class Bot:
-    def __init__(self, colour : pCol, depth : int = 10, filtering : bool = True):
-        self.moveCalc = MoveCalculator([])
+    def __init__(self, colour : pCol, depth : int = 6, filtering : bool = True):
         self.col = colour
         self.calculating = False
         self.result : concurrent.futures.Future
         self.executor = concurrent.futures.ThreadPoolExecutor()
-        self.posThreads : list[concurrent.futures.Future] = []
         self.depth = depth
         self.filtering = filtering
         self.quitted = False
@@ -557,40 +550,67 @@ class Bot:
     def calculate(self, boardArr : list[list[Piece]]) -> Move:
         currentPos = Position(boardArr, self.col)
         start = time.time_ns()
-        n=0
         for i in range(self.depth):
-            self.posCalc(currentPos)
+            if self.quitted:
+                break
+            
+            if i<4:
+                with PosFuture(currentPos) as posfu:
+                    posfu.startCalc()
+            else:
+                self.prep4thread(currentPos,i)
 
             if self.filtering:
                 pass
             
-            n+=1
-            print(f"{n}={(time.time_ns()-start)/1000000000}")
+            print(f"{i}={(time.time_ns()-start)/1000000000}")
 
         return newMove(nullPiece(),(0,0),(0,0))
     
-    def posCalc(self, position : Position):
-        if self.quitted:
+    def prep4thread(self, position : Position, iteration : int):
+        if iteration == 4:
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                posThreads = executor.map(threadStart,position.nextPos)
+                position.givePos(tuple(posThreads))
             return None
+        
+        if len(position.nextPos)>0:
+            for pos in position.nextPos:
+                self.prep4thread(pos,iteration-1)
+
+def threadStart(position : Position) -> Position:
+    posfu = PosFuture(position)
+    posfu.startCalc()
+    return posfu.position
+
+class PosFuture:
+    def __init__(self, position : Position):
+        self.position = position
+    
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def setPos(self, position : Position):
+        self.position = position
+
+    def startCalc(self):
+        self.posCalc(self.position)
+    
+    def posCalc(self, position : Position):
 
         if len(position.moves)>0:
             for pos in position.nextPos:
                 self.posCalc(pos)
-            for pos in self.posThreads:
-                pos.result()
-            self.posThreads.clear()
             return None
         
-        start=time.time_ns()
-        self.moveCalc.reCalc()
-        self.moveCalc.setBoard(position.getBoard())
-        self.moveCalc.calculate(position.turn)
-        position.giveMoves(self.moveCalc.moves)
-        print(f"1={(time.time_ns()-start)/1000000}")
+        moveCalc = MoveCalculator(position.getBoard())
+        moveCalc.calculate(position.turn)
+        position.giveMoves(moveCalc.moves)
         if len(position.moves)>0:
-            #self.posThreads.append(self.executor.submit(self.posProcessor,position))
             self.posProcessor(position)
-            print(f"2={(time.time_ns()-start)/1000000}")
             return None
         
         position.giveState(posState.STALEMATE)
@@ -598,7 +618,7 @@ class Bot:
         for x in range(8):
             for y in range(8):
                 if position.boardArr[x][y].type == pType.KING and position.boardArr[x][y].col == position.turn:
-                    if not self.moveCalc.subkingCalculate(position.boardArr[x][y],x,y):
+                    if not moveCalc.subkingCalculate(position.boardArr[x][y],x,y):
                         position.giveState(posState.CHECKMATE)
     
     def posProcessor(self, position : Position):
@@ -625,7 +645,8 @@ class Bot:
                     boardArr[move.endpos[0]-1][move.endpos[1]] = boardArr[7][move.endpos[1]]
                     boardArr[7][move.endpos[1]]=nullPiece()
             posList.append(Position(boardArr, pCol(position.turn.value*(-1)+1)))
-        position.givePos(posList)
+        position.givePos(tuple(posList))
+
 
 class Chess:
     def __init__(self, window : pygame.Window, board : Board, bot : bool = False, playerCol : pCol = pCol.WHITE):
@@ -720,38 +741,42 @@ class Chess:
         if self.isbot:
             self.bot.quit()
 
-bOffset = 20
-squareSize = 80
-piecesize = 50
+if __name__ == "__main__":
+    import pygame
+    pygame.init()
 
-window = pygame.Window("Chess",(2*bOffset+8*squareSize,2*bOffset+8*squareSize))
-board = Board(squareSize,bOffset,piecesize)
-game = Chess(window,board,True)
+    bOffset = 20
+    squareSize = 80
+    piecesize = 50
 
-interval = 0.016666667
+    window = pygame.Window("Chess",(2*bOffset+8*squareSize,2*bOffset+8*squareSize))
+    board = Board(squareSize,bOffset,piecesize)
+    game = Chess(window,board,True)
 
-Running = True
-while Running:
-    start = time.time_ns()
+    interval = 0.016666667
 
-    for Event in pygame.event.get():
-        if Event.type == pygame.QUIT:
-            Running = False
-    
+    Running = True
+    while Running:
+        start = time.time_ns()
 
-    keys = pygame.key.get_pressed()
-    mousepos = pygame.mouse.get_pos()
-    click = pygame.mouse.get_pressed()
+        for Event in pygame.event.get():
+            if Event.type == pygame.QUIT:
+                Running = False
+        
 
-    if keys[pygame.K_ESCAPE]:
-        Running=False
+        keys = pygame.key.get_pressed()
+        mousepos = pygame.mouse.get_pos()
+        click = pygame.mouse.get_pressed()
 
-    game.update(mousepos, click)
-    game.draw()
+        if keys[pygame.K_ESCAPE]:
+            Running=False
 
-    finish = time.time_ns()
-    sleepT = max(0,interval - (finish-start)/1000000000)
-    time.sleep(sleepT)
+        game.update(mousepos, click)
+        game.draw()
 
-game.quit()
-pygame.quit()
+        finish = time.time_ns()
+        sleepT = max(0,interval - (finish-start)/1000000000)
+        time.sleep(sleepT)
+
+    game.quit()
+    pygame.quit()
