@@ -474,7 +474,9 @@ class posState(Enum):
 
 class Position:
     def __init__(self, boardArr : list[list[Piece]], turn : pCol, state : posState = posState.ACTIVE):
-        self.boardArr = tuple(tuple(piece.ID for piece in column) for column in boardArr)
+        self.boardArr = tuple(tuple(
+            (piece.ID if piece.moved==(False,False) else piece.ID+(32 if piece.moved==(True,False) else 64)) 
+            for piece in column) for column in boardArr)
         self.materialBal : int = 0
         self.state = state
         if self.state == posState.ACTIVE:
@@ -488,7 +490,15 @@ class Position:
         self.turn = turn
 
     def getBoard(self, key:dict[int,Piece]) -> tuple[tuple[Piece,...],...]:
-        return tuple(tuple(key[square] for square in column) for column in self.boardArr)
+        boardArr = tuple(tuple((key[(square if square<33 else (square-32 if square<65 else square-64))]) for square in column) for column in self.boardArr)
+        for x in range(8):
+            for y in range(8):
+                if self.boardArr[x][y]>32:
+                    if self.boardArr[x][y]>64:
+                        boardArr[x][y].moved=(True,True)
+                    else:
+                        boardArr[x][y].moved=(True,False)
+        return boardArr
     
     def giveMoves(self, moves : list[Move]):
         self.moves = moves
@@ -609,7 +619,8 @@ class PosFuture:
                 self.posCalc(pos)
             return None
         
-        moveCalc = MoveCalculator(position.getBoard(self.key))
+        boardArr = position.getBoard(self.key)
+        moveCalc = MoveCalculator(boardArr)
         moveCalc.calculate(position.turn)
         position.giveMoves(moveCalc.moves)
         if len(position.moves)>0:
@@ -618,7 +629,6 @@ class PosFuture:
         
         position.giveState(posState.STALEMATE,self.key)
         
-        boardArr = position.getBoard(self.key)
         for x in range(8):
             for y in range(8):
                 if boardArr[x][y].type == pType.KING and boardArr[x][y].col == position.turn:
