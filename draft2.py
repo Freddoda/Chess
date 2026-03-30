@@ -4,6 +4,7 @@ from enum import Enum
 import time
 import math
 import concurrent.futures
+import itertools
 
 class pType(Enum):
     NONE=-1
@@ -101,7 +102,7 @@ class Board:
                                       self.bOffset+(b+0.5)*self.squareSize-self.pieceSize*0.5-3))
                     
 class MoveCalculator:
-    def __init__(self, boardArr : list[list[Piece]], boardObj : Board = Board(0,0,0)):
+    def __init__(self, boardArr : list[list[Piece]] |tuple[tuple[Piece,...],...], boardObj : Board = Board(0,0,0)):
         self.calculated = False
         self.moves : list[Move] = []
         self.boardArr = boardArr
@@ -473,21 +474,21 @@ class posState(Enum):
 
 class Position:
     def __init__(self, boardArr : list[list[Piece]], turn : pCol, state : posState = posState.ACTIVE):
-        self.boardArr = tuple(tuple(column) for column in boardArr)
+        self.boardArr = tuple(tuple(piece.ID for piece in column) for column in boardArr)
         self.materialBal : int = 0
         self.state = state
         if self.state == posState.ACTIVE:
             ((self.materialBal + 
             self.materialVal(square) * ((1 if square.col == turn else -1) if square != nullPiece() else 0) 
-            for square in row) for row in self.boardArr)
+            for square in row) for row in boardArr)
         elif self.state == posState.CHECKMATE:
             self.materialBal = -50
         self.moves : list[Move] = []
         self.nextPos : tuple = ()
         self.turn = turn
 
-    def getBoard(self) -> list[list[Piece]]:
-        return list(list(column) for column in self.boardArr)
+    def getBoard(self, key:dict[int,Piece]) -> tuple[tuple[Piece,...],...]:
+        return tuple(tuple(key[square] for square in column) for column in self.boardArr)
     
     def giveMoves(self, moves : list[Move]):
         self.moves = moves
@@ -510,12 +511,12 @@ class Position:
             case _:
                 return 0
             
-    def giveState(self, state : posState):
+    def giveState(self, state : posState, key:dict[int,Piece]):
         self.materialBal=0
         match (state):
             case posState.ACTIVE:
                 ((self.materialBal + 
-                self.materialVal(square) * ((1 if square.col == self.turn else -1) if square != nullPiece() else 0) 
+                self.materialVal(key[square]) * ((1 if key[square].col == self.turn else -1) if square != 0 else 0) 
                 for square in row) for row in self.boardArr)
             case posState.CHECKMATE:
                 self.materialBal = -50
@@ -549,16 +550,17 @@ class Bot:
 
     def calculate(self, boardArr : list[list[Piece]]) -> Move:
         currentPos = Position(boardArr, self.col)
+        posKey = {piece.ID: piece for column in boardArr for piece in column}
         start = time.time_ns()
         for i in range(self.depth):
             if self.quitted:
                 break
             
             if i<4:
-                with PosFuture(currentPos) as posfu:
+                with PosFuture(currentPos,posKey) as posfu:
                     posfu.startCalc()
             else:
-                self.prep4thread(currentPos,i)
+                self.prep4thread(currentPos,posKey,i)
 
             if self.filtering:
                 pass
@@ -567,25 +569,26 @@ class Bot:
 
         return newMove(nullPiece(),(0,0),(0,0))
     
-    def prep4thread(self, position : Position, iteration : int):
+    def prep4thread(self, position : Position, key : dict[int, Piece], iteration : int):
         if iteration == 4:
             with concurrent.futures.ProcessPoolExecutor() as executor:
-                posThreads = executor.map(threadStart,position.nextPos)
+                posThreads = executor.map(threadStart,position.nextPos,itertools.repeat(key,len(position.nextPos)))
                 position.givePos(tuple(posThreads))
             return None
         
         if len(position.nextPos)>0:
             for pos in position.nextPos:
-                self.prep4thread(pos,iteration-1)
+                self.prep4thread(pos,key,iteration-1)
 
-def threadStart(position : Position) -> Position:
-    posfu = PosFuture(position)
+def threadStart(position : Position, key : dict[int, Piece]) -> Position:
+    posfu = PosFuture(position,key)
     posfu.startCalc()
     return posfu.position
 
 class PosFuture:
-    def __init__(self, position : Position):
+    def __init__(self, position : Position, key : dict[int, Piece]):
         self.position = position
+        self.key = key
     
     def __enter__(self):
         return self
@@ -606,25 +609,27 @@ class PosFuture:
                 self.posCalc(pos)
             return None
         
-        moveCalc = MoveCalculator(position.getBoard())
+        moveCalc = MoveCalculator(position.getBoard(self.key))
         moveCalc.calculate(position.turn)
         position.giveMoves(moveCalc.moves)
         if len(position.moves)>0:
             self.posProcessor(position)
             return None
         
-        position.giveState(posState.STALEMATE)
+        position.giveState(posState.STALEMATE,self.key)
         
+        boardArr = position.getBoard(self.key)
         for x in range(8):
             for y in range(8):
-                if position.boardArr[x][y].type == pType.KING and position.boardArr[x][y].col == position.turn:
-                    if not moveCalc.subkingCalculate(position.boardArr[x][y],x,y):
-                        position.giveState(posState.CHECKMATE)
+                if boardArr[x][y].type == pType.KING and boardArr[x][y].col == position.turn:
+                    if not moveCalc.subkingCalculate(boardArr[x][y],x,y):
+                        position.giveState(posState.CHECKMATE,self.key)
     
     def posProcessor(self, position : Position):
         posList = []
+        boardTup = position.getBoard(self.key)
         for move in position.moves:
-            boardArr = position.getBoard()
+            boardArr = list(list(column) for column in boardTup)
 
             for a in range(8):
                 for b in range(8):
