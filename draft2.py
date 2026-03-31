@@ -474,9 +474,9 @@ class posState(Enum):
 
 class Position:
     def __init__(self, boardArr : list[list[Piece]], turn : pCol, state : posState = posState.ACTIVE):
-        self.boardArr = tuple(tuple(
-            (piece.ID if piece.moved==(False,False) else piece.ID+(32 if piece.moved==(True,False) else 64)) 
-            for piece in column) for column in boardArr)
+        self.boardArr = tuple([tuple(
+            [(piece.ID*3 + piece.moved[0] + piece.moved[1]) 
+            for piece in column]) for column in boardArr])
         self.materialBal : int = 0
         self.state = state
         if self.state == posState.ACTIVE:
@@ -490,15 +490,14 @@ class Position:
         self.turn = turn
 
     def getBoard(self, key:dict[int,Piece]) -> tuple[tuple[Piece,...],...]:
-        boardArr = tuple(tuple((key[(square if square<33 else (square-32 if square<65 else square-64))]) for square in column) for column in self.boardArr)
-        for x in range(8):
-            for y in range(8):
-                if self.boardArr[x][y]>32:
-                    if self.boardArr[x][y]>64:
-                        boardArr[x][y].moved=(True,True)
-                    else:
-                        boardArr[x][y].moved=(True,False)
-        return boardArr
+        return tuple(tuple([self.pieceProcess(key[square//3],square) for square in column]) for column in self.boardArr)
+    
+    def pieceProcess(self, piece : Piece, num : int):
+        if num%3==1:
+            piece.moved=(True,False)
+        elif num%3==2:
+            piece.moved=(True,False)
+        return piece
     
     def giveMoves(self, moves : list[Move]):
         self.moves = moves
