@@ -533,13 +533,12 @@ class Position:
                 pass
 
 class Bot:
-    def __init__(self, colour : pCol, depth : int = 6, filtering : bool = True):
+    def __init__(self, colour : pCol, complex : bool = False):
         self.col = colour
         self.calculating = False
         self.result : concurrent.futures.Future
         self.executor = concurrent.futures.ThreadPoolExecutor()
-        self.depth = depth
-        self.filtering = filtering
+        self.depth = 5 if complex else 3
         self.quitted = False
     
     def quit(self):
@@ -570,11 +569,10 @@ class Bot:
                     posfu.startCalc()
             else:
                 self.prep4thread(currentPos,posKey,i)
-
-            if self.filtering:
-                pass
             
             print(f"{i}={(time.time_ns()-start)/1000000000}")
+
+        #do pos eval after previous loop
 
         return newMove(nullPiece(),(0,0),(0,0))
     
@@ -663,7 +661,7 @@ class PosFuture:
 
 
 class Chess:
-    def __init__(self, window : pygame.Window, board : Board, bot : bool = False, playerCol : pCol = pCol.WHITE):
+    def __init__(self, window : pygame.Window, board : Board, bot : int = 0, playerCol : pCol = pCol.WHITE):
         self.window = window
         self.screen = window.get_surface()
         self.boardObj = board
@@ -672,11 +670,11 @@ class Chess:
         self.moveSet = self.moveCalc.moves
         self.IDselect = 0
         self.turn : pCol = pCol.WHITE
-        self.isbot = bot
+        self.isbot = bool(bot)
         self.bot : Bot
         self.playerCol : pCol
-        if bot:
-            self.bot = Bot(pCol(playerCol.value*(-1)+1))
+        if self.isbot:
+            self.bot = Bot(pCol(playerCol.value*(-1)+1), bool(bot-1))
             self.playerCol = playerCol
 
     def update(self, mousepos : tuple[int,int], click : tuple[bool,bool,bool]):
@@ -763,9 +761,19 @@ if __name__ == "__main__":
     squareSize = 80
     piecesize = 50
 
+    Bot_mode = ""
+    while Bot_mode not in ("012") or len(Bot_mode)!=1:
+        Bot_mode = input("0 for no bot, 1 for simple 3 deep bot, 2 for less simple 5 deep bot\n")
+    Bot_col = ""
+    while Bot_col not in ("12") or len(Bot_col)!=1:
+        if Bot_mode != ("1" or "2"):
+            Bot_col = "1"
+            break
+        Bot_col = input("1 to play as white, 2 to play as black\n")
+
     window = pygame.Window("Chess",(2*bOffset+8*squareSize,2*bOffset+8*squareSize))
     board = Board(squareSize,bOffset,piecesize)
-    game = Chess(window,board,True)
+    game = Chess(window,board,int(Bot_mode),pCol(int(Bot_col)-1))
 
     interval = 0.016666667
 
