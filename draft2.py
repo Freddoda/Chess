@@ -533,25 +533,29 @@ class Position:
                 pass
 
 class Bot:
-    def __init__(self, colour : pCol, complex : bool = False):
+    def __init__(self, colour : pCol, comple : bool = False):
         self.col = colour
         self.calculating = False
         self.result : concurrent.futures.Future
         self.executor = concurrent.futures.ThreadPoolExecutor()
-        self.depth = 5 if complex else 3
+        self.depth = 5 if comple else 3
         self.quitted = False
+        self.comple = comple
     
     def quit(self):
         self.quitted = True
     
-    def botcalc(self, boardArr : list[list[Piece]], turn : pCol):
+    def botcalc(self, boardArr : list[list[Piece]], turn : pCol) -> Move:
         if turn == self.col and not self.calculating:
             self.result = self.executor.submit(self.calculate, boardArr)
             self.calculating=True
         
         if self.calculating: 
             if self.result.done():
-                pass
+                return self.result.result()
+            
+        return newMove(nullPiece(), (0,0), (0,0))
+                
 
     def recalc(self):
         self.calculating=False
@@ -572,9 +576,14 @@ class Bot:
             
             print(f"{i}={(time.time_ns()-start)/1000000000}")
 
-        #do pos eval after previous loop
+        chosenMove = newMove(nullPiece(),(0,0),(0,0))
 
-        return newMove(nullPiece(),(0,0),(0,0))
+        if self.comple:
+            chosenMove = self.complexEval(currentPos)
+        else:
+            chosenMove = self.simpleEval(currentPos)
+
+        return chosenMove
     
     def prep4thread(self, position : Position, key : dict[int, Piece], iteration : int):
         if iteration == 4:
@@ -586,6 +595,12 @@ class Bot:
         if len(position.nextPos)>0:
             for pos in position.nextPos:
                 self.prep4thread(pos,key,iteration-1)
+
+    def simpleEval(self, pos : Position) -> Move:
+        return newMove(nullPiece(),(0,0),(0,0))
+
+    def complexEval(self, pos : Position) -> Move:
+        return newMove(nullPiece(),(0,0),(0,0))
 
 def threadStart(position : Position, key : dict[int, Piece]) -> Position:
     posfu = PosFuture(position,key)
@@ -682,7 +697,7 @@ class Chess:
 
         self.moveCalc.calculate(self.turn)
         if self.isbot:
-            self.bot.botcalc(self.boardArr,self.turn)
+            self.moveMake(self.bot.botcalc(self.boardArr,self.turn))
     
     def draw(self):
         self.screen.fill((128,128,128))
@@ -708,33 +723,38 @@ class Chess:
         for move in self.moveCalc.moves:
             if move.pieceID == self.IDselect and move.piece.col == self.turn and (self.turn == self.playerCol if self.isbot else True):
                 if (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square)) == move.endpos:
-
-                    for a in range(8):
-                        for b in range(8):
-                            if self.boardArr[a][b].moved==(True,False):
-                                self.boardArr[a][b].moved=(True,True)
-                    if not move.piece.moved[0]:
-                        move.piece.moved=(True,False)
-
-                    self.boardArr[move.endpos[0]][move.endpos[1]] = move.piece
-                    self.boardArr[move.startpos[0]][move.startpos[1]] = nullPiece()
-                    if move.type == MoveType.ENPASSANT:
-                        self.boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
-                    elif move.type == MoveType.CASTLE:
-                        if move.endpos[0]<move.startpos[0]:
-                            self.boardArr[move.endpos[0]+1][move.endpos[1]] = self.boardArr[0][move.endpos[1]]
-                            self.boardArr[0][move.endpos[1]]=nullPiece()
-                        else:
-                            self.boardArr[move.endpos[0]-1][move.endpos[1]] = self.boardArr[7][move.endpos[1]]
-                            self.boardArr[7][move.endpos[1]]=nullPiece()
-                    self.moveCalc.reCalc()
-                    self.turn=pCol(self.turn.value*(-1)+1)
-                    if self.isbot:
-                        self.bot.recalc()
+                    self.moveMake(move)
                     return None
                     
         self.IDselect = self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)].ID
         return None
+
+    def moveMake(self, move : Move):
+        if move.piece == nullPiece():
+            return None
+        print('a')
+        for a in range(8):
+            for b in range(8):
+                if self.boardArr[a][b].moved==(True,False):
+                    self.boardArr[a][b].moved=(True,True)
+        if not move.piece.moved[0]:
+            move.piece.moved=(True,False)
+
+        self.boardArr[move.endpos[0]][move.endpos[1]] = move.piece
+        self.boardArr[move.startpos[0]][move.startpos[1]] = nullPiece()
+        if move.type == MoveType.ENPASSANT:
+            self.boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
+        elif move.type == MoveType.CASTLE:
+            if move.endpos[0]<move.startpos[0]:
+                self.boardArr[move.endpos[0]+1][move.endpos[1]] = self.boardArr[0][move.endpos[1]]
+                self.boardArr[0][move.endpos[1]]=nullPiece()
+            else:
+                self.boardArr[move.endpos[0]-1][move.endpos[1]] = self.boardArr[7][move.endpos[1]]
+                self.boardArr[7][move.endpos[1]]=nullPiece()
+        self.moveCalc.reCalc()
+        self.turn=pCol(self.turn.value*(-1)+1)
+        if self.isbot:
+            self.bot.recalc()
 
     
     def drawSelected(self):
