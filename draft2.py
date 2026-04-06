@@ -732,7 +732,6 @@ class Chess:
     def moveMake(self, move : Move):
         if move.piece == nullPiece():
             return None
-        print('a')
         for a in range(8):
             for b in range(8):
                 if self.boardArr[a][b].moved==(True,False):
