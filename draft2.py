@@ -5,7 +5,6 @@ import time
 import math
 import concurrent.futures
 import itertools
-import copy
 import random
 
 class pType(Enum):
@@ -461,6 +460,9 @@ class checkFinder:
                 if not move.endpos in check:
                     poppedmoves.append(move)
             
+            if move in poppedmoves:
+                continue
+
             for pinn in pins:
                 if move.piece == pinn[0]:
                     if not move.endpos in pinn[1]:
