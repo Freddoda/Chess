@@ -5,6 +5,8 @@ import time
 import math
 import concurrent.futures
 import itertools
+import copy
+import random
 
 class pType(Enum):
     NONE=-1
@@ -20,7 +22,7 @@ class pCol(Enum):
     WHITE=0
     BLACK=1
 
-@dataclass
+@dataclass(slots=True)
 class Piece:
     ID : int
     type : pType
@@ -53,7 +55,7 @@ class MoveType(Enum):
     CASTLE = 2
     PROMOTE = 3
 
-@dataclass
+@dataclass(slots=True)
 class Move:
     piece : Piece
     pieceID : int
@@ -493,7 +495,9 @@ class Position:
         return tuple(tuple([self.pieceProcess(key[square//3],square) for square in column]) for column in self.boardArr)
     
     def pieceProcess(self, piece : Piece, num : int):
-        if num%3==1:
+        if num%3==0:
+            piece.moved=(False,False)
+        elif num%3==1:
             piece.moved=(True,False)
         elif num%3==2:
             piece.moved=(True,False)
@@ -562,7 +566,7 @@ class Bot:
 
     def calculate(self, boardArr : list[list[Piece]]) -> Move:
         currentPos = Position(boardArr, self.col)
-        posKey = {piece.ID: piece for column in boardArr for piece in column}
+        posKey = {piece.ID: Piece(piece.ID,piece.type,piece.col,piece.moved) for column in boardArr for piece in column}
         start = time.time_ns()
         for i in range(self.depth):
             if self.quitted:
@@ -597,7 +601,7 @@ class Bot:
                 self.prep4thread(pos,key,iteration-1)
 
     def simpleEval(self, pos : Position) -> Move:
-        return newMove(nullPiece(),(0,0),(0,0))
+        return pos.moves[random.randint(0,len(pos.moves)-1)]
 
     def complexEval(self, pos : Position) -> Move:
         return newMove(nullPiece(),(0,0),(0,0))
@@ -732,6 +736,7 @@ class Chess:
     def moveMake(self, move : Move):
         if move.piece == nullPiece():
             return None
+        
         for a in range(8):
             for b in range(8):
                 if self.boardArr[a][b].moved==(True,False):
@@ -765,8 +770,10 @@ class Chess:
                     if self.boardArr[a][b].ID == self.IDselect:
                         x = a
                         y = b
-
-            pygame.draw.circle(self.screen,(255,0,0),(offset+square*(x+0.5),offset+square*(y+0.5)),5)
+            try:
+                pygame.draw.circle(self.screen,(255,0,0),(offset+square*(x+0.5),offset+square*(y+0.5)),5)
+            except:
+                pass
     
     def quit(self):
         if self.isbot:
@@ -785,7 +792,7 @@ if __name__ == "__main__":
         Bot_mode = input("0 for no bot, 1 for simple 3 deep bot, 2 for less simple 5 deep bot\n")
     Bot_col = ""
     while Bot_col not in ("12") or len(Bot_col)!=1:
-        if Bot_mode != ("1" or "2"):
+        if Bot_mode not in ("12"):
             Bot_col = "1"
             break
         Bot_col = input("1 to play as white, 2 to play as black\n")
