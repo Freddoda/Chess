@@ -490,7 +490,7 @@ class Position:
         elif self.state == posState.CHECKMATE:
             self.materialBal = -50
         self.moves : list[Move] = []
-        self.nextPos : tuple = ()
+        self.nextPos : tuple[Position, ...] = ()
         self.turn = turn
 
     def getBoard(self, key:dict[int,Piece]) -> tuple[tuple[Piece,...],...]:
@@ -603,6 +603,25 @@ class Bot:
                 self.prep4thread(pos,key,iteration-1)
 
     def simpleEval(self, pos : Position) -> Move:
+
+        for n in range(len(pos.nextPos)):
+            if pos.nextPos[n].state == posState.CHECKMATE:
+                return pos.moves[n]
+            
+        for n in range(len(pos.nextPos)):
+            forcedMate = True
+            for p in pos.nextPos[n].nextPos:
+                isMate = False
+                for p2 in p.nextPos:
+                    if p2.state == posState.CHECKMATE:
+                        isMate = True
+                        break
+                if not isMate:
+                    forcedMate = False
+                    break
+            if forcedMate:
+                return pos.moves[n]
+
         return pos.moves[random.randint(0,len(pos.moves)-1)]
 
     def complexEval(self, pos : Position) -> Move:
