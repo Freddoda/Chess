@@ -604,6 +604,9 @@ class Bot:
 
     def simpleEval(self, pos : Position) -> Move:
 
+        if len(pos.moves) == 0:
+            return newMove(nullPiece(),(0,0),(0,0))
+
         for n in range(len(pos.nextPos)):
             if pos.nextPos[n].state == posState.CHECKMATE:
                 return pos.moves[n]
