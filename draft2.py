@@ -4,17 +4,16 @@ from enum import Enum
 import time
 import math
 import concurrent.futures
-import itertools
 import random
 
 class pType(Enum):
-    NONE=-1
-    PAWN=0
-    KNIGHT=1
-    BISHOP=2
-    ROOK=3
-    QUEEN=4
-    KING=5
+    NONE=0
+    PAWN=1
+    KNIGHT=2
+    BISHOP=3
+    ROOK=4
+    QUEEN=5
+    KING=6
 
 class pCol(Enum):
     NONE=-1
@@ -23,13 +22,12 @@ class pCol(Enum):
 
 @dataclass(slots=True)
 class Piece:
-    ID : int
     type : pType
     col : pCol
     moved : tuple[int,int] = (False,False)
 
 def nullPiece() -> Piece:
-    return Piece(0,pType.NONE,pCol.NONE)
+    return Piece(pType.NONE,pCol.NONE)
 
 def getLetter(piece : Piece):
     match piece.type:
@@ -57,13 +55,12 @@ class MoveType(Enum):
 @dataclass(slots=True)
 class Move:
     piece : Piece
-    pieceID : int
     startpos : tuple[int,int]
     endpos : tuple[int,int]
     type : MoveType
 
 def newMove(piece : Piece, startpos: tuple[int,int], endpos : tuple[int,int], type : MoveType = MoveType.NORMAL) -> Move:
-    return Move(piece,piece.ID,startpos,endpos,type)
+    return Move(piece,startpos,endpos,type)
 
 class Board:
     def __init__(self,squareSize:int,bOffset:int,pieceSize:int):
@@ -72,15 +69,12 @@ class Board:
         self.pieceSize = pieceSize
         self.boardarray : list[list[Piece]] =[[],[],[],[],[],[],[],[]]
         bRank = (pType.ROOK,pType.KNIGHT,pType.BISHOP,pType.QUEEN,pType.KING,pType.BISHOP,pType.KNIGHT,pType.ROOK)
-        num = 1
         for a in range(8):
             for b in range(8):
                 if b==0 or b==7:
-                    self.boardarray[a].append(Piece(num,bRank[a],pCol(1-b/7)))
-                    num+=1
+                    self.boardarray[a].append(Piece(bRank[a],pCol(1-b/7)))
                 elif b==1 or b==6:
-                    self.boardarray[a].append(Piece(num,pType.PAWN,pCol(1-(b-1)/5)))
-                    num+=1
+                    self.boardarray[a].append(Piece(pType.PAWN,pCol(1-(b-1)/5)))
                 else:
                     self.boardarray[a].append(nullPiece())
 
@@ -331,11 +325,11 @@ class MoveCalculator:
         return False
         
 
-    def drawMoves(self, screen : pygame.Surface, selectedID : int, turn : pCol):
+    def drawMoves(self, screen : pygame.Surface, selectedPos : tuple[int, int], turn : pCol):
         for move in self.moves:
             offset = self.boardObj.bOffset
             square = self.boardObj.squareSize
-            if move.pieceID == selectedID and move.piece.col==turn:
+            if move.startpos== selectedPos and move.piece.col==turn:
                 pygame.draw.circle(screen,(0,255,0),(offset+square*(move.endpos[0]+0.5),offset+square*(move.endpos[1]+0.5)),15)
 
 class checkFinder:
@@ -479,24 +473,28 @@ class posState(Enum):
 class Position:
     def __init__(self, boardArr : list[list[Piece]], turn : pCol, state : posState = posState.ACTIVE):
         self.boardArr = tuple([tuple(
-            [(piece.ID*3 + piece.moved[0] + piece.moved[1]) 
+            [((piece.type.value*3 + piece.moved[0] + piece.moved[1])*(-1 if piece.col == pCol.BLACK else 1))
             for piece in column]) for column in boardArr])
         self.materialBal : int = 0
         self.state = state
         if self.state == posState.ACTIVE:
-            ((self.materialBal + 
-            self.materialVal(square) * ((1 if square.col == turn else -1) if square != nullPiece() else 0) 
-            for square in row) for row in boardArr)
+            for row in boardArr:
+                for square in row:
+                    self.materialBal += self.materialVal(square.type) * ((1 if square.col == turn else -1) if square != nullPiece() else 0)
         elif self.state == posState.CHECKMATE:
             self.materialBal = -50
         self.moves : list[Move] = []
         self.nextPos : tuple[Position, ...] = ()
         self.turn = turn
+        self.nullPiece = nullPiece()
 
-    def getBoard(self, key:dict[int,Piece]) -> tuple[tuple[Piece,...],...]:
-        return tuple(tuple([self.pieceProcess(key[square//3],square) for square in column]) for column in self.boardArr)
+    def getBoard(self) -> tuple[tuple[Piece,...],...]:
+        return tuple(tuple([
+            ( self.nullPiece if square==0 else self.movedProcess(
+                Piece(pType(abs(square)//3), pCol.WHITE if square==abs(square) else pCol.BLACK)
+            ,square)) for square in column]) for column in self.boardArr)
     
-    def pieceProcess(self, piece : Piece, num : int):
+    def movedProcess(self, piece : Piece, num : int):
         if num%3==0:
             piece.moved=(False,False)
         elif num%3==1:
@@ -511,8 +509,8 @@ class Position:
     def givePos(self, nextPos : tuple):
         self.nextPos = nextPos
     
-    def materialVal(self, piece : Piece) -> int:
-        match (piece):
+    def materialVal(self, type : pType) -> int:
+        match (type):
             case pType.PAWN:
                 return 1
             case pType.KNIGHT:
@@ -526,12 +524,12 @@ class Position:
             case _:
                 return 0
             
-    def giveState(self, state : posState, key:dict[int,Piece]):
+    def giveState(self, state : posState):
         self.materialBal=0
         match (state):
             case posState.ACTIVE:
                 ((self.materialBal + 
-                self.materialVal(key[square]) * ((1 if key[square].col == self.turn else -1) if square != 0 else 0) 
+                self.materialVal(pType(square)) * ((square/abs(square) * ((self.turn.value*-2)+1)) if square != 0 else 0) 
                 for square in row) for row in self.boardArr)
             case posState.CHECKMATE:
                 self.materialBal = -50
@@ -568,17 +566,16 @@ class Bot:
 
     def calculate(self, boardArr : list[list[Piece]]) -> Move:
         currentPos = Position(boardArr, self.col)
-        posKey = {piece.ID: Piece(piece.ID,piece.type,piece.col,piece.moved) for column in boardArr for piece in column}
         start = time.time_ns()
         for i in range(self.depth):
             if self.quitted:
                 break
             
             if i<4:
-                with PosFuture(currentPos,posKey) as posfu:
+                with PosFuture(currentPos) as posfu:
                     posfu.startCalc()
             else:
-                self.prep4thread(currentPos,posKey,i)
+                self.prep4thread(currentPos,i)
             
             print(f"{i}={(time.time_ns()-start)/1000000000}")
 
@@ -591,18 +588,19 @@ class Bot:
 
         return chosenMove
     
-    def prep4thread(self, position : Position, key : dict[int, Piece], iteration : int):
+    def prep4thread(self, position : Position, iteration : int):
         if iteration == 4:
             with concurrent.futures.ProcessPoolExecutor() as executor:
-                posThreads = executor.map(threadStart,position.nextPos,itertools.repeat(key,len(position.nextPos)))
+                posThreads = executor.map(threadStart,position.nextPos)
                 position.givePos(tuple(posThreads))
             return None
         
         if len(position.nextPos)>0:
             for pos in position.nextPos:
-                self.prep4thread(pos,key,iteration-1)
+                self.prep4thread(pos,iteration-1)
 
     def simpleEval(self, pos : Position) -> Move:
+        print((pos.moves))
 
         if len(pos.moves) == 0:
             return newMove(nullPiece(),(0,0),(0,0))
@@ -630,15 +628,14 @@ class Bot:
     def complexEval(self, pos : Position) -> Move:
         return newMove(nullPiece(),(0,0),(0,0))
 
-def threadStart(position : Position, key : dict[int, Piece]) -> Position:
-    posfu = PosFuture(position,key)
+def threadStart(position : Position) -> Position:
+    posfu = PosFuture(position)
     posfu.startCalc()
     return posfu.position
 
 class PosFuture:
-    def __init__(self, position : Position, key : dict[int, Piece]):
+    def __init__(self, position : Position):
         self.position = position
-        self.key = key
     
     def __enter__(self):
         return self
@@ -659,7 +656,7 @@ class PosFuture:
                 self.posCalc(pos)
             return None
         
-        boardArr = position.getBoard(self.key)
+        boardArr = position.getBoard()
         moveCalc = MoveCalculator(boardArr)
         moveCalc.calculate(position.turn)
         position.giveMoves(moveCalc.moves)
@@ -667,17 +664,17 @@ class PosFuture:
             self.posProcessor(position)
             return None
         
-        position.giveState(posState.STALEMATE,self.key)
+        position.giveState(posState.STALEMATE)
         
         for x in range(8):
             for y in range(8):
                 if boardArr[x][y].type == pType.KING and boardArr[x][y].col == position.turn:
                     if not moveCalc.subkingCalculate(boardArr[x][y],x,y):
-                        position.giveState(posState.CHECKMATE,self.key)
+                        position.giveState(posState.CHECKMATE)
     
     def posProcessor(self, position : Position):
         posList = []
-        boardTup = position.getBoard(self.key)
+        boardTup = position.getBoard()
         for move in position.moves:
             boardArr = list(list(column) for column in boardTup)
 
@@ -711,7 +708,7 @@ class Chess:
         self.boardArr = board.boardarray
         self.moveCalc = MoveCalculator(self.boardArr,self.boardObj)
         self.moveSet = self.moveCalc.moves
-        self.IDselect = 0
+        self.posSelect = (-1,-1)
         self.turn : pCol = pCol.WHITE
         self.isbot = bool(bot)
         self.bot : Bot
@@ -732,7 +729,7 @@ class Chess:
 
         self.boardObj.draw(self.screen)
         self.drawSelected()
-        self.moveCalc.drawMoves(self.screen,self.IDselect,self.turn)
+        self.moveCalc.drawMoves(self.screen,self.posSelect,self.turn)
 
         self.window.flip()
 
@@ -742,19 +739,19 @@ class Chess:
         if not click[0]:
             return None
         if not (offset<mousepos[0]<offset+8*square and offset<mousepos[1]<offset+8*square):
-            self.IDselect = 0
+            self.posSelect = (-1,-1)
             return None
-        if self.IDselect == 0:
-            self.IDselect = self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)].ID
+        if self.posSelect == (-1,-1):
+            self.posSelect = (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square))
             return None
 
         for move in self.moveCalc.moves:
-            if move.pieceID == self.IDselect and move.piece.col == self.turn and (self.turn == self.playerCol if self.isbot else True):
+            if move.startpos == self.posSelect and move.piece.col == self.turn and (self.turn == self.playerCol if self.isbot else True):
                 if (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square)) == move.endpos:
                     self.moveMake(move)
                     return None
                     
-        self.IDselect = self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)].ID
+        self.posSelect = (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square))
         return None
 
     def moveMake(self, move : Move):
@@ -788,16 +785,8 @@ class Chess:
     def drawSelected(self):
         offset = self.boardObj.bOffset
         square = self.boardObj.squareSize
-        if self.IDselect!=0:
-            for a in range(8):
-                for b in range(8):
-                    if self.boardArr[a][b].ID == self.IDselect:
-                        x = a
-                        y = b
-            try:
-                pygame.draw.circle(self.screen,(255,0,0),(offset+square*(x+0.5),offset+square*(y+0.5)),5)
-            except:
-                pass
+        if self.posSelect!=(-1,-1):
+            pygame.draw.circle(self.screen,(255,0,0),(offset+square*(self.posSelect[0]+0.5),offset+square*(self.posSelect[1]+0.5)),5)
     
     def quit(self):
         if self.isbot:
