@@ -29,8 +29,8 @@ class Piece:
 def nullPiece() -> Piece:
     return Piece(pType.NONE,pCol.NONE)
 
-def getLetter(piece : Piece):
-    match piece.type:
+def getLetter(type : pType):
+    match type:
         case pType.PAWN:
             return 'P'
         case pType.KNIGHT:
@@ -50,7 +50,10 @@ class MoveType(Enum):
     NORMAL = 0
     ENPASSANT = 1
     CASTLE = 2
-    PROMOTE = 3
+    PROMOTE_N = 3
+    PROMOTE_B = 4
+    PROMOTE_R = 5
+    PROMOTE_Q = 6
 
 @dataclass(slots=True)
 class Move:
@@ -92,7 +95,7 @@ class Board:
                     pygame.draw.rect(screen,((255,255,255) if piece.col!=pCol.WHITE else (0,0,0)),
                         pygame.Rect(self.bOffset+(a+0.5)*self.squareSize-self.pieceSize*0.5,self.bOffset+(b+0.5)*self.squareSize-self.pieceSize*0.5,
                                     self.pieceSize,self.pieceSize),2)
-                    text = font.render(getLetter(piece),True,((255,255,255) if piece.col!=pCol.WHITE else (0,0,0)))
+                    text = font.render(getLetter(piece.type),True,((255,255,255) if piece.col!=pCol.WHITE else (0,0,0)))
                     screen.blit(text,(self.bOffset+(a+0.5)*self.squareSize-text.width*0.5,
                                       self.bOffset+(b+0.5)*self.squareSize-self.pieceSize*0.5-3))
                     
@@ -150,20 +153,29 @@ class MoveCalculator:
             return None
 
         if self.boardArr[pos[0]][pos[1]-1+2*pawn.col.value] == nullPiece():
-            self.moves.append(newMove(pawn,pos,(pos[0],pos[1]-1+2*pawn.col.value)))
+            if pos[1]-1+2*pawn.col.value != pawn.col.value*7:
+                self.moves.append(newMove(pawn,pos,(pos[0],pos[1]-1+2*pawn.col.value)))
+            else:
+                self.moves.extend([newMove(pawn,pos,(pos[0],pos[1]-1+2*pawn.col.value),MoveType(n)) for n in range(3,7)])
             if pawn.moved == (False,False) and self.boardArr[pos[0]][pos[1]-2+4*pawn.col.value] == nullPiece():
                 self.moves.append(newMove(pawn,pos,(pos[0],pos[1]-2+4*pawn.col.value)))
         if pos[0]+1<8:
             if (self.boardArr[pos[0]+1][pos[1]-1+2*pawn.col.value] != nullPiece() and
                 self.boardArr[pos[0]+1][pos[1]-1+2*pawn.col.value].col != pawn.col):
-                self.moves.append(newMove(pawn,pos,(pos[0]+1,pos[1]-1+2*pawn.col.value)))
+                if pos[1]-1+2*pawn.col.value != pawn.col.value*7:
+                    self.moves.append(newMove(pawn,pos,(pos[0]+1,pos[1]-1+2*pawn.col.value)))
+                else:
+                    self.moves.extend([newMove(pawn,pos,(pos[0]+1,pos[1]-1+2*pawn.col.value),MoveType(n)) for n in range(3,7)])
             if (self.boardArr[pos[0]+1][pos[1]].type == pType.PAWN and self.boardArr[pos[0]+1][pos[1]].moved == (True,False) and
                 self.boardArr[pos[0]+1][pos[1]].col != pawn.col):
                 self.moves.append(newMove(pawn,pos,(pos[0]+1,pos[1]-1+2*pawn.col.value),MoveType.ENPASSANT))
         if pos[0]-1>-1:
             if (self.boardArr[pos[0]-1][pos[1]-1+2*pawn.col.value] != nullPiece() and
                 self.boardArr[pos[0]-1][pos[1]-1+2*pawn.col.value].col != pawn.col):
-                self.moves.append(newMove(pawn,pos,(pos[0]-1,pos[1]-1+2*pawn.col.value)))
+                if pos[1]-1+2*pawn.col.value != pawn.col.value*7:
+                    self.moves.append(newMove(pawn,pos,(pos[0]-1,pos[1]-1+2*pawn.col.value)))
+                else:
+                    self.moves.extend([newMove(pawn,pos,(pos[0]-1,pos[1]-1+2*pawn.col.value),MoveType(n)) for n in range(3,7)])
             if (self.boardArr[pos[0]-1][pos[1]].type == pType.PAWN and self.boardArr[pos[0]-1][pos[1]].moved == (True,False) and
                 self.boardArr[pos[0]-1][pos[1]].col != pawn.col):
                 self.moves.append(newMove(pawn,pos,(pos[0]-1,pos[1]-1+2*pawn.col.value),MoveType.ENPASSANT))
@@ -323,14 +335,20 @@ class MoveCalculator:
                     if self.boardArr[x+a][y+b].type==pType.KING and self.boardArr[x+a][y+b].col != king.col:
                         return True
         return False
-        
 
     def drawMoves(self, screen : pygame.Surface, selectedPos : tuple[int, int], turn : pCol):
+        prSize = 26
+        font = pygame.font.SysFont('arial',prSize)
+        offset = self.boardObj.bOffset
+        square = self.boardObj.squareSize
         for move in self.moves:
-            offset = self.boardObj.bOffset
-            square = self.boardObj.squareSize
-            if move.startpos== selectedPos and move.piece.col==turn:
-                pygame.draw.circle(screen,(0,255,0),(offset+square*(move.endpos[0]+0.5),offset+square*(move.endpos[1]+0.5)),15)
+            if move.startpos == selectedPos and move.piece.col==turn:
+                if move.type.value<3:
+                    pygame.draw.circle(screen,(0,255,0),(offset+square*(move.endpos[0]+0.5),offset+square*(move.endpos[1]+0.5)),15)
+                else:
+                    text = font.render(getLetter(pType(move.type.value-1)),True,(0,225,0))
+                    screen.blit(text,(offset+(move.endpos[0]+0.25 + (0 if move.type.value%2 else 0.5))*square-text.width*0.5,
+                                      offset+(move.endpos[1]+0.25 + (0 if move.type.value<5 else 0.5))*square-text.height*0.5-3))
 
 class checkFinder:
     def __init__(self, movecalc : MoveCalculator):
@@ -687,15 +705,20 @@ class PosFuture:
 
             boardArr[move.endpos[0]][move.endpos[1]] = move.piece
             boardArr[move.startpos[0]][move.startpos[1]] = nullPiece()
-            if move.type == MoveType.ENPASSANT:
-                boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
-            elif move.type == MoveType.CASTLE:
-                if move.endpos[0]<move.startpos[0]:
-                    boardArr[move.endpos[0]+1][move.endpos[1]] = boardArr[0][move.endpos[1]]
-                    boardArr[0][move.endpos[1]]=nullPiece()
-                else:
-                    boardArr[move.endpos[0]-1][move.endpos[1]] = boardArr[7][move.endpos[1]]
-                    boardArr[7][move.endpos[1]]=nullPiece()
+            match move.type:
+                case MoveType.NORMAL:
+                    pass
+                case MoveType.ENPASSANT:
+                    boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
+                case MoveType.CASTLE:
+                    if move.endpos[0]<move.startpos[0]:
+                        boardArr[move.endpos[0]+1][move.endpos[1]] = boardArr[0][move.endpos[1]]
+                        boardArr[0][move.endpos[1]]=nullPiece()
+                    else:
+                        boardArr[move.endpos[0]-1][move.endpos[1]] = boardArr[7][move.endpos[1]]
+                        boardArr[7][move.endpos[1]]=nullPiece()
+                case _:
+                    boardArr[move.endpos[0]][move.endpos[1]].type = pType(move.type.value-1)
             posList.append(Position(boardArr, pCol(position.turn.value*(-1)+1)))
         position.givePos(tuple(posList))
 
@@ -742,15 +765,26 @@ class Chess:
             self.posSelect = (-1,-1)
             return None
         if self.posSelect == (-1,-1):
+            if self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)]==nullPiece():
+                return None
             self.posSelect = (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square))
             return None
 
         for move in self.moveCalc.moves:
             if move.startpos == self.posSelect and move.piece.col == self.turn and (self.turn == self.playerCol if self.isbot else True):
                 if (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square)) == move.endpos:
-                    self.moveMake(move)
-                    return None
+                    if move.type.value<3:
+                        self.moveMake(move)
+                        return None
                     
+                    elif ( (((mousepos[0]-offset)%square<0.5*square and move.type.value%2) or ((mousepos[0]-offset)%square>=0.5*square and not move.type.value%2)) and
+                          (((mousepos[1]-offset)%square<0.5*square and move.type.value<5) or ((mousepos[1]-offset)%square>=0.5*square and not move.type.value<5))  ):
+                        self.moveMake(move)
+                        return None
+
+        if self.boardArr[math.floor((mousepos[0]-offset)/square)][math.floor((mousepos[1]-offset)/square)]==nullPiece():
+                self.posSelect = (-1,-1)
+                return None    
         self.posSelect = (math.floor((mousepos[0]-offset)/square),math.floor((mousepos[1]-offset)/square))
         return None
 
@@ -767,15 +801,20 @@ class Chess:
 
         self.boardArr[move.endpos[0]][move.endpos[1]] = move.piece
         self.boardArr[move.startpos[0]][move.startpos[1]] = nullPiece()
-        if move.type == MoveType.ENPASSANT:
-            self.boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
-        elif move.type == MoveType.CASTLE:
-            if move.endpos[0]<move.startpos[0]:
-                self.boardArr[move.endpos[0]+1][move.endpos[1]] = self.boardArr[0][move.endpos[1]]
-                self.boardArr[0][move.endpos[1]]=nullPiece()
-            else:
-                self.boardArr[move.endpos[0]-1][move.endpos[1]] = self.boardArr[7][move.endpos[1]]
-                self.boardArr[7][move.endpos[1]]=nullPiece()
+        match move.type:
+            case MoveType.NORMAL:
+                pass
+            case MoveType.ENPASSANT:
+                self.boardArr[move.endpos[0]][move.endpos[1]+1-2*move.piece.col.value] = nullPiece()
+            case MoveType.CASTLE:
+                if move.endpos[0]<move.startpos[0]:
+                    self.boardArr[move.endpos[0]+1][move.endpos[1]] = self.boardArr[0][move.endpos[1]]
+                    self.boardArr[0][move.endpos[1]]=nullPiece()
+                else:
+                    self.boardArr[move.endpos[0]-1][move.endpos[1]] = self.boardArr[7][move.endpos[1]]
+                    self.boardArr[7][move.endpos[1]]=nullPiece()
+            case _:
+                self.boardArr[move.endpos[0]][move.endpos[1]].type = pType(move.type.value-1)
         self.moveCalc.reCalc()
         self.turn=pCol(self.turn.value*(-1)+1)
         if self.isbot:
