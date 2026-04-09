@@ -473,7 +473,7 @@ class posState(Enum):
 class Position:
     def __init__(self, boardArr : list[list[Piece]], turn : pCol, state : posState = posState.ACTIVE):
         self.boardArr = tuple([tuple(
-            [((piece.type.value*3 + piece.moved[0] + piece.moved[1])*(-1 if piece.col == pCol.BLACK else 1))
+            [((piece.type.value*3 + piece.moved[0] + piece.moved[1])+(100 if piece.col == pCol.BLACK else 0))
             for piece in column]) for column in boardArr])
         self.materialBal : int = 0
         self.state = state
@@ -491,7 +491,7 @@ class Position:
     def getBoard(self) -> tuple[tuple[Piece,...],...]:
         return tuple(tuple([
             ( self.nullPiece if square==0 else self.movedProcess(
-                Piece(pType(abs(square)//3), pCol.WHITE if square==abs(square) else pCol.BLACK)
+                Piece(pType((square%100)//3), pCol.WHITE if square<100 else pCol.BLACK)
             ,square)) for square in column]) for column in self.boardArr)
     
     def movedProcess(self, piece : Piece, num : int):
