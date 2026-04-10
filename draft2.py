@@ -364,7 +364,7 @@ class checkFinder:
         self.brHandle(x,y, king, False)
 
     def pawnHandle(self, x : int, y : int, king : Piece):
-        if x-1+2*king.col.value>7 or x-1+2*king.col.value<0:
+        if y-1+2*king.col.value>7 or y-1+2*king.col.value<0:
             return None
         
         pawns : list[tuple[int,int]]= []
