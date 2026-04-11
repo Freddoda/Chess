@@ -431,14 +431,14 @@ class checkFinder:
             poppedMoves.append(move)
 
         for move in poppedMoves:
-            self.moves.pop(self.moves.index(move))
+            self.moves.remove(move)
 
     def brHandle(self, x : int, y : int, king : Piece, mode : bool):
         checks : list[list[tuple[int,int]]] = []
-        pins : list[tuple[Piece,list[tuple[int,int]]]] = []
+        pins : list[tuple[tuple[int,int],list[tuple[int,int]]]] = []
         for dir in range(4):
             between : list[tuple[int,int]] = []
-            pin = nullPiece()
+            pin = (0,0)
             for n in range(1,((min((7-x if dir%2 == 0 else x),(7-y if dir < 2 else y))) if mode else 
                               ((x if dir<2 else y)*(-1 if dir%2 else 1)+(7 if dir%2 else 0)))+1):
                 n1 = (x+n if dir%2 == 0 else x-n) if mode else (x + (0 if dir>=2 else (n if dir%2 else -n)))
@@ -448,17 +448,18 @@ class checkFinder:
                     continue
 
                 if self.boardArr[n1][n2].col == king.col:
-                    if not pin==nullPiece():
+                    if not pin==(0,0):
                         break
-                    pin = self.boardArr[n1][n2]
+                    pin = (n1,n2)
                     continue
 
                 if (self.boardArr[n1][n2].type==(pType.BISHOP if mode else pType.ROOK) or self.boardArr[n1][n2].type==pType.QUEEN):
                     between.append((n1,n2))
-                    if pin == nullPiece():
+                    if pin == (0,0):
                         checks.append(between)
                     else:
                         pins.append((pin,between))
+                        print('a')
                 break
         
         poppedmoves = []
@@ -469,6 +470,10 @@ class checkFinder:
                 continue
 
             for check in checks:
+
+                if move in poppedmoves:
+                    break
+
                 if not move.endpos in check:
                     poppedmoves.append(move)
             
@@ -476,7 +481,11 @@ class checkFinder:
                 continue
 
             for pinn in pins:
-                if move.piece == pinn[0]:
+
+                if move in poppedmoves:
+                    break
+
+                if move.startpos == pinn[0]:
                     if not move.endpos in pinn[1]:
                         poppedmoves.append(move)
 
@@ -502,7 +511,7 @@ class Position:
         elif self.state == posState.CHECKMATE:
             self.materialBal = -50
         self.moves : list[Move] = []
-        self.nextPos : tuple[Position, ...] = ()
+        self.nextPos : list[Position] = []
         self.turn = turn
         self.nullPiece = nullPiece()
 
@@ -524,7 +533,7 @@ class Position:
     def giveMoves(self, moves : list[Move]):
         self.moves = moves
     
-    def givePos(self, nextPos : tuple):
+    def givePos(self, nextPos : list[Position]):
         self.nextPos = nextPos
     
     def materialVal(self, type : pType) -> int:
@@ -610,7 +619,7 @@ class Bot:
         if iteration == 4:
             with concurrent.futures.ProcessPoolExecutor() as executor:
                 posThreads = executor.map(threadStart,position.nextPos)
-                position.givePos(tuple(posThreads))
+                position.givePos(list(posThreads))
             return None
         
         if len(position.nextPos)>0:
@@ -618,7 +627,6 @@ class Bot:
                 self.prep4thread(pos,iteration-1)
 
     def simpleEval(self, pos : Position) -> Move:
-        print((pos.moves))
 
         if len(pos.moves) == 0:
             return newMove(nullPiece(),(0,0),(0,0))
@@ -640,6 +648,26 @@ class Bot:
                     break
             if forcedMate:
                 return pos.moves[n]
+            
+        n=0
+        poppedmoves : list[Move] = []
+        poppedpos : list[Position] = []
+        while n<len(pos.nextPos):
+            checkmate = False
+            for p in pos.nextPos[n].nextPos:
+                if p.state == posState.CHECKMATE:
+                    checkmate = True
+                    break
+            if checkmate:
+                poppedmoves.append(pos.moves[n])
+                poppedpos.append(pos.nextPos[n])
+                continue
+            n+=1
+        if len(poppedmoves)<len(pos.moves):
+            for move in poppedmoves:
+                pos.moves.remove(move)
+            for p in poppedpos:
+                pos.nextPos.remove(p)
 
         return pos.moves[random.randint(0,len(pos.moves)-1)]
 
@@ -720,7 +748,7 @@ class PosFuture:
                 case _:
                     boardArr[move.endpos[0]][move.endpos[1]].type = pType(move.type.value-1)
             posList.append(Position(boardArr, pCol(position.turn.value*(-1)+1)))
-        position.givePos(tuple(posList))
+        position.givePos(posList)
 
 
 class Chess:
