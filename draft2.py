@@ -157,8 +157,9 @@ class MoveCalculator:
                 self.moves.append(newMove(pawn,pos,(pos[0],pos[1]-1+2*pawn.col.value)))
             else:
                 self.moves.extend([newMove(pawn,pos,(pos[0],pos[1]-1+2*pawn.col.value),MoveType(n)) for n in range(3,7)])
-            if pawn.moved == (False,False) and self.boardArr[pos[0]][pos[1]-2+4*pawn.col.value] == nullPiece():
-                self.moves.append(newMove(pawn,pos,(pos[0],pos[1]-2+4*pawn.col.value)))
+            if pawn.moved == (False,False):
+                if self.boardArr[pos[0]][pos[1]-2+4*pawn.col.value] == nullPiece():
+                    self.moves.append(newMove(pawn,pos,(pos[0],pos[1]-2+4*pawn.col.value)))
         if pos[0]+1<8:
             if (self.boardArr[pos[0]+1][pos[1]-1+2*pawn.col.value] != nullPiece() and
                 self.boardArr[pos[0]+1][pos[1]-1+2*pawn.col.value].col != pawn.col):
@@ -459,7 +460,6 @@ class checkFinder:
                         checks.append(between)
                     else:
                         pins.append((pin,between))
-                        print('a')
                 break
         
         poppedmoves = []
@@ -562,6 +562,7 @@ class Position:
                 self.materialBal = -50
             case posState.STALEMATE:
                 pass
+        self.state = state
 
 class Bot:
     def __init__(self, colour : pCol, comple : bool = False):
@@ -652,7 +653,7 @@ class Bot:
         n=0
         poppedmoves : list[Move] = []
         poppedpos : list[Position] = []
-        while n<len(pos.nextPos):
+        for n in range(len(pos.nextPos)):
             checkmate = False
             for p in pos.nextPos[n].nextPos:
                 if p.state == posState.CHECKMATE:
@@ -661,8 +662,8 @@ class Bot:
             if checkmate:
                 poppedmoves.append(pos.moves[n])
                 poppedpos.append(pos.nextPos[n])
-                continue
-            n+=1
+
+        print(poppedmoves)
         if len(poppedmoves)<len(pos.moves):
             for move in poppedmoves:
                 pos.moves.remove(move)
