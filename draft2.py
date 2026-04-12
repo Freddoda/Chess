@@ -24,7 +24,7 @@ class pCol(Enum):
 class Piece:
     type : pType
     col : pCol
-    moved : tuple[int,int] = (False,False)
+    moved : tuple[bool,bool] = (False,False)
 
 def nullPiece() -> Piece:
     return Piece(pType.NONE,pCol.NONE)
@@ -522,12 +522,13 @@ class Position:
             ,square)) for square in column]) for column in self.boardArr)
     
     def movedProcess(self, piece : Piece, num : int):
-        if num%3==0:
-            piece.moved=(False,False)
-        elif num%3==1:
-            piece.moved=(True,False)
-        elif num%3==2:
-            piece.moved=(True,False)
+        match ((num%100)%3):
+            case 0:
+                piece.moved=(False,False)
+            case 1:
+                piece.moved=(True,False)
+            case 2:
+                piece.moved=(True,True)
         return piece
     
     def giveMoves(self, moves : list[Move]):
@@ -723,7 +724,7 @@ class PosFuture:
         posList = []
         boardTup = position.getBoard()
         for move in position.moves:
-            boardArr = list(list(column) for column in boardTup)
+            boardArr = [[piece for piece in column] for column in boardTup]
 
             for a in range(8):
                 for b in range(8):
