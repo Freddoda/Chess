@@ -4,10 +4,56 @@
 #include<chrono>
 #include<iostream>
 #include<thread>
+#include<vector>
+#include<array>
+
+enum class pCol {
+    NONE=0,
+    WHITE=1,
+    BLACK=2
+};
+
+enum class pType {
+    NONE=0,
+    PAWN=1,
+    KNIGHT=2,
+    BISHOP=3,
+    ROOK=4,
+    QUEEN=5,
+    KING=6
+};
+
+struct Piece {
+    pType type;
+    pCol colour;
+    std::array<bool,2> moved = {false,false};
+};
+
+Piece nullPiece(){
+    return Piece{pType::NONE, pCol::NONE};
+}
+
+enum class mType {
+    NORMAL=0,
+    CASTLE=1,
+    ENPASSANT=2,
+    PROMOTE_N,
+    PROMOTE_B,
+    PROMOTE_R,
+    PROMOTE_Q
+};
+
+struct Move {
+    Piece piece;
+    std::array<int,2> startpos;
+    std::array<int,2> endpos;
+    mType type;
+};
 
 class Chess{
     public:
         int squareSize, squareBuffer;
+        std::array<std::array<Piece,8>,8> boardArr;
 
         Chess(int squareSize, int squareBuffer){
             this->squareSize = squareSize;
@@ -32,8 +78,9 @@ int main(int argc, char* argv[]){
     SDL_Init(SDL_INIT_VIDEO);              // Initialize SDL3
 
     const bool *keys = SDL_GetKeyboardState(NULL);
-    int* mouseX = new int(0);
-    int* mouseY = new int(0);
+    float mouseX;
+    float mouseY;
+    Uint32 buttons;
 
     std::chrono::nanoseconds start;
     std::chrono::nanoseconds end;
@@ -72,6 +119,10 @@ int main(int argc, char* argv[]){
                 done = true;
             }
         }
+        if (keys[SDL_SCANCODE_ESCAPE]){
+            done = true;
+        }
+        buttons = SDL_GetMouseState(&mouseX, &mouseY);
 
         game.update();
         game.draw();
@@ -90,8 +141,6 @@ int main(int argc, char* argv[]){
     SDL_DestroyRenderer(renderer);
     TTF_DestroyRendererTextEngine(textEngine);
     TTF_CloseFont(font);
-    delete mouseX;
-    delete mouseY;
 
 
     SDL_Quit();
