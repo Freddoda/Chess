@@ -7,6 +7,17 @@
 #include<vector>
 #include<array>
 
+void renderRect(SDL_Renderer* renderer, std::array<float,2> pos, std::array<float,2> size, std::array<int,3> colour, bool fill){
+    SDL_SetRenderDrawColor(renderer, colour[0], colour[1], colour[2], 255);
+    SDL_FRect *rect = new SDL_FRect{pos[0],pos[1],size[0],size[1]};
+    if (fill) {
+        SDL_RenderFillRect(renderer, rect);
+    } else {
+        SDL_RenderRect(renderer, rect);
+    }
+    delete rect;
+}
+
 enum class pCol {
     NONE=0,
     WHITE=1,
@@ -52,21 +63,37 @@ struct Move {
 
 class Chess{
     public:
-        int squareSize, squareBuffer;
-        std::array<std::array<Piece,8>,8> boardArr;
+    int squareSize, squareBuffer;
+    std::array<std::array<Piece,8>,8> boardArr;
 
-        Chess(int squareSize, int squareBuffer){
-            this->squareSize = squareSize;
-            this->squareSize = squareBuffer;
+    Chess(int squareSize, int squareBuffer){
+        this->squareSize = squareSize;
+        this->squareBuffer = squareBuffer;
+        //construct board array
+    }
+
+    void update(){
+
+    }
+
+    void draw(SDL_Renderer *renderer, TTF_TextEngine *textengine, TTF_Font *font){
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        boardDraw(renderer, textengine, font);
+
+        SDL_RenderPresent(renderer);
+    }
+
+    void boardDraw(SDL_Renderer *renderer, TTF_TextEngine *textengine, TTF_Font *font){  
+        for (int x = 0; x<8; x++){
+            for (int y = 0; y<8; y++){
+                renderRect(renderer,{static_cast<float>(squareBuffer + x*squareSize), static_cast<float>(squareBuffer + y*squareSize)},
+                            {static_cast<float>(squareSize), static_cast<float>(squareSize)}, {255*((x+y+1)%2),255*((x+y+1)%2),255*((x+y+1)%2)},true);
+                //draw pieces too
+            }
         }
-
-        void update(){
-
-        }
-
-        void draw(){
-
-        }
+    }
 };
 
 int main(int argc, char* argv[]){
@@ -125,7 +152,7 @@ int main(int argc, char* argv[]){
         buttons = SDL_GetMouseState(&mouseX, &mouseY);
 
         game.update();
-        game.draw();
+        game.draw(renderer, textEngine, font);
 
         SDL_UpdateWindowSurface(window);
 
