@@ -18,11 +18,41 @@ void renderRect(SDL_Renderer* renderer, std::array<float,2> pos, std::array<floa
     delete rect;
 }
 
+void renderText(TTF_TextEngine *textengine, TTF_Font *font, std::string text, std::array<int,2> pos, std::array<int,3> colour){
+    //pos is centered
+    TTF_Text* textobj = TTF_CreateText(textengine, font, text.c_str(), 0);
+    int* width = new int(0);
+    int* height = new int(0);
+    TTF_GetTextSize(textobj, width, height);
+    TTF_SetTextColor(textobj, colour[0], colour[1], colour[2], 255);
+
+    TTF_DrawRendererText(textobj,pos[0]-(*width)/2,pos[1]-(*height)/2);
+
+    TTF_DestroyText(textobj);
+    delete width;
+    delete height;
+}
+
 enum class pCol {
+    BLACK=-1,
     NONE=0,
     WHITE=1,
-    BLACK=2
 };
+
+std::array<int,3> getRGB(pCol col){
+    std::array<int,3> RGB = {128,128,128};
+    switch (col){
+        case pCol::WHITE:
+            RGB = {255,255,255};
+            break;
+        case pCol::BLACK:
+            RGB = {0,0,0};
+            break;
+        default:
+            break;
+    }
+    return RGB;
+}
 
 enum class pType {
     NONE=0,
@@ -34,6 +64,11 @@ enum class pType {
     KING=6
 };
 
+std::string getLetter(pType type){
+    std::array<std::string,7> letters = {"","P","N","B","R","Q","K"};
+    return letters[static_cast<int>(type)];
+}
+
 struct Piece {
     pType type;
     pCol colour;
@@ -43,6 +78,10 @@ struct Piece {
 Piece nullPiece(){
     return Piece{pType::NONE, pCol::NONE};
 }
+
+bool operator==(const Piece &piece1, const Piece &piece2){
+    return (piece1.type == piece2.type && piece1.colour == piece2.colour && piece1.moved == piece2.moved);
+} //annoyance
 
 enum class mType {
     NORMAL=0,
@@ -63,13 +102,35 @@ struct Move {
 
 class Chess{
     public:
-    int squareSize, squareBuffer;
+    int squareSize, squareBuffer, pieceSize;
     std::array<std::array<Piece,8>,8> boardArr;
 
-    Chess(int squareSize, int squareBuffer){
+    Chess(int squareSize, int squareBuffer, int pieceSize){
         this->squareSize = squareSize;
         this->squareBuffer = squareBuffer;
-        //construct board array
+        this->pieceSize = pieceSize;
+        std::array<Piece,8> emptyline;
+        emptyline.fill(nullPiece());
+        boardArr.fill(emptyline);
+        std::array<pType,8> backRank = {pType::ROOK, pType::KNIGHT, pType::BISHOP, pType::QUEEN, pType::KING, pType::BISHOP, pType::KNIGHT, pType::ROOK};
+        for (int a=0; a<8; a++){
+            for (int b=0; b<8; b++){
+                pCol col;
+                if (b<2){
+                    col = pCol::BLACK;
+                } else {
+                    col = pCol::WHITE;
+                }
+
+                if (b==0 || b==7){
+                    this->boardArr[a][b]=Piece{backRank[a],col};
+                } else if (b==1 || b==6){
+                    this->boardArr[a][b]=Piece{pType::PAWN,col};
+                } else {
+                    this->boardArr[a][b]=nullPiece();
+                }
+            }
+        }
     }
 
     void update(){
@@ -77,7 +138,7 @@ class Chess{
     }
 
     void draw(SDL_Renderer *renderer, TTF_TextEngine *textengine, TTF_Font *font){
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_SetRenderDrawColor(renderer, 127, 127, 127, 255);
         SDL_RenderClear(renderer);
 
         boardDraw(renderer, textengine, font);
@@ -90,7 +151,19 @@ class Chess{
             for (int y = 0; y<8; y++){
                 renderRect(renderer,{static_cast<float>(squareBuffer + x*squareSize), static_cast<float>(squareBuffer + y*squareSize)},
                             {static_cast<float>(squareSize), static_cast<float>(squareSize)}, {255*((x+y+1)%2),255*((x+y+1)%2),255*((x+y+1)%2)},true);
-                //draw pieces too
+                if (boardArr[x][y]==nullPiece()){
+                    continue;
+                }
+                renderRect(renderer,{static_cast<float>(squareBuffer + (x)*squareSize + 0.5*(squareSize-pieceSize)), 
+                                    static_cast<float>(squareBuffer + y*squareSize + 0.5*(squareSize-pieceSize))},
+                            {static_cast<float>(pieceSize), static_cast<float>(pieceSize)}, getRGB(boardArr[x][y].colour),true);
+                renderRect(renderer,{static_cast<float>(squareBuffer + (x)*squareSize + 0.5*(squareSize-pieceSize)), 
+                                    static_cast<float>(squareBuffer + y*squareSize + 0.5*(squareSize-pieceSize))},
+                            {static_cast<float>(pieceSize), static_cast<float>(pieceSize)}, 
+                            getRGB(static_cast<pCol>(static_cast<int>(boardArr[x][y].colour)*(-1))),false);
+                renderText(textengine,font,getLetter(boardArr[x][y].type), 
+                            {static_cast<int>(squareBuffer + (x+0.5)*squareSize), static_cast<int>(squareBuffer + (y+0.5)*squareSize)},
+                            getRGB(static_cast<pCol>(static_cast<int>(boardArr[x][y].colour)*(-1))));
             }
         }
     }
@@ -114,15 +187,9 @@ int main(int argc, char* argv[]){
     std::chrono::nanoseconds duration;
     std::chrono::nanoseconds frametime(16666667);
 
-    const char* base_path = SDL_GetBasePath(); 
-    std::string font_path = std::string(base_path) + "Arial.ttf";
-    TTF_Font* font = TTF_OpenFont(font_path.c_str(), 60);
-    if (font == NULL){
-        std::cout<<SDL_GetError();
-    }
-
     int squareSize = 80;
     int squareBuffer = 20;
+    int pieceSize = 50;
 
     window = SDL_CreateWindow("Chess", 8*squareSize + 2*squareBuffer, 8*squareSize + 2*squareBuffer, SDL_WINDOW_OPENGL);
 
@@ -134,7 +201,14 @@ int main(int argc, char* argv[]){
         return 1;
     }
 
-    Chess game(squareSize, squareBuffer);
+    const char* base_path = SDL_GetBasePath(); 
+    std::string font_path = std::string(base_path) + "Arial.ttf";
+    TTF_Font* font = TTF_OpenFont(font_path.c_str(), pieceSize);
+    if (font == NULL){
+        std::cout<<SDL_GetError();
+    }
+
+    Chess game(squareSize, squareBuffer, pieceSize);
 
     while (!done) {
         start = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
