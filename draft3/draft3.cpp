@@ -18,6 +18,17 @@ void renderRect(SDL_Renderer* renderer, std::array<float,2> pos, std::array<floa
     delete rect;
 }
 
+void renderCircle(SDL_Renderer* renderer, int x, int y, int rad, std::array<int,3> colour){
+    SDL_SetRenderDrawColor(renderer, colour[0], colour[1], colour[2], 255);
+    for (int x2 = -rad; x2<=rad; x2++){
+        for (int y2 = -rad; y2<=rad; y2++){
+            if ((x2 * x2 + y2 * y2)<(rad*rad)){
+                SDL_RenderPoint(renderer,x+x2,y+y2);
+            }
+        }
+    }
+}
+
 void renderText(TTF_TextEngine *textengine, TTF_Font *font, std::string text, std::array<int,2> pos, std::array<int,3> colour){
     //pos is centered
     TTF_Text* textobj = TTF_CreateText(textengine, font, text.c_str(), 0);
@@ -100,15 +111,81 @@ struct Move {
     mType type;
 };
 
+class MoveCalculator{
+    protected:
+
+    bool calculated;
+    std::vector<Move> moves;
+
+    public:
+
+    MoveCalculator(){
+        moves = {};
+        calculated = false;
+    }
+
+    void reCalc(){
+        moves.clear();
+        calculated = false;
+    }
+
+    std::vector<Move> &getMoves(){
+        return moves;
+    }
+
+    void calculate(std::array<std::array<Piece,8>,8> &boardArr, pCol turn){
+        if (calculated){
+            return;
+        }
+
+        for (int x=0; x<8; x++){
+            for (int y=0; y<8; y++){
+                switch (boardArr[x][y].type){
+                    case pType::NONE:
+                        break;
+                    case pType::PAWN:
+                        //pawn calc function
+                        break;
+                    case pType::KNIGHT:
+                        //knight calc function
+                        break;
+                    case pType::BISHOP:
+                        //bishop calc function
+                        break;
+                    case pType::ROOK:
+                        //rook calc function
+                        break;
+                    case pType::QUEEN:
+                        //queen calc function
+                        break;
+                    case pType::KING:
+                        //king calc function
+                        break;
+                }
+            }
+        }
+
+        //check stuff
+
+        calculated = true;
+    }
+};
+
 class Chess{
     public:
     int squareSize, squareBuffer, pieceSize;
     std::array<std::array<Piece,8>,8> boardArr;
+    std::array<int,2> selectedPos;
+    pCol turn;
+    MoveCalculator mCalc;
+    std::vector<Move> moves;
 
     Chess(int squareSize, int squareBuffer, int pieceSize){
         this->squareSize = squareSize;
         this->squareBuffer = squareBuffer;
         this->pieceSize = pieceSize;
+        selectedPos={-1,-1};
+        turn = pCol::WHITE;
         std::array<Piece,8> emptyline;
         emptyline.fill(nullPiece());
         boardArr.fill(emptyline);
@@ -131,9 +208,14 @@ class Chess{
                 }
             }
         }
+        mCalc = MoveCalculator();
+        moves = mCalc.getMoves();
     }
 
-    void update(){
+    void update(Uint32 mButtons, float mouseX, float mouseY){
+
+        mCalc.calculate(boardArr,turn);
+        select(mButtons, mouseX, mouseY);
 
     }
 
@@ -142,6 +224,7 @@ class Chess{
         SDL_RenderClear(renderer);
 
         boardDraw(renderer, textengine, font);
+        movesDraw(renderer);
 
         SDL_RenderPresent(renderer);
     }
@@ -167,6 +250,47 @@ class Chess{
             }
         }
     }
+
+    void movesDraw(SDL_Renderer *renderer){
+        if (selectedPos == std::array<int,2>{-1,-1}){
+            return;
+        }
+
+        renderCircle(renderer,squareBuffer+squareSize/2+squareSize*selectedPos[0],squareBuffer+squareSize/2+squareSize*selectedPos[1],
+                     8, std::array<int,3>{255,0,0});
+
+        for (Move move: moves){
+            if (move.startpos != selectedPos){
+                continue;
+            }
+
+            renderCircle(renderer,squareBuffer+squareSize/2+squareSize*move.startpos[0],squareBuffer+squareSize/2+squareSize*move.startpos[1],
+                         12, std::array<int,3>{0,255,0});
+        }
+    }
+
+    void select(Uint32 mButtons, float mouseX, float mouseY){
+        if (!(mButtons & SDL_BUTTON_LEFT)){
+            return;
+        }
+
+        if(mouseX<squareBuffer || mouseX>squareBuffer+8*squareSize || mouseY<squareBuffer || mouseY>squareBuffer+8*squareSize){
+            selectedPos = {-1,-1};
+            return;
+        }
+
+        for (Move move: moves){
+            if (move.startpos != selectedPos){
+                continue;
+            }
+            //move stuff
+        }
+
+        if (boardArr[std::floor((mouseX-squareBuffer)/squareSize)][std::floor((mouseY-squareBuffer)/squareSize)].colour == turn){
+            selectedPos = {static_cast<int>(std::floor((mouseX-squareBuffer)/squareSize)),
+                        static_cast<int>(std::floor((mouseY-squareBuffer)/squareSize))};
+        }
+    }
 };
 
 int main(int argc, char* argv[]){
@@ -180,7 +304,7 @@ int main(int argc, char* argv[]){
     const bool *keys = SDL_GetKeyboardState(NULL);
     float mouseX;
     float mouseY;
-    Uint32 buttons;
+    Uint32 mButtons;
 
     std::chrono::nanoseconds start;
     std::chrono::nanoseconds end;
@@ -223,9 +347,9 @@ int main(int argc, char* argv[]){
         if (keys[SDL_SCANCODE_ESCAPE]){
             done = true;
         }
-        buttons = SDL_GetMouseState(&mouseX, &mouseY);
+        mButtons = SDL_GetMouseState(&mouseX, &mouseY); //returns bitmask, use 'bitwise and' (&) and bitmask for intended Mbutton to check if clicked
 
-        game.update();
+        game.update(mButtons, mouseX, mouseY);
         game.draw(renderer, textEngine, font);
 
         SDL_UpdateWindowSurface(window);
