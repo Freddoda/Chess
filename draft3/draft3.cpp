@@ -264,7 +264,7 @@ class Chess{
                 continue;
             }
 
-            renderCircle(renderer,squareBuffer+squareSize/2+squareSize*move.startpos[0],squareBuffer+squareSize/2+squareSize*move.startpos[1],
+            renderCircle(renderer,squareBuffer+squareSize/2+squareSize*move.endpos[0],squareBuffer+squareSize/2+squareSize*move.endpos[1],
                          12, std::array<int,3>{0,255,0});
         }
     }
