@@ -94,6 +94,10 @@ bool operator==(const Piece &piece1, const Piece &piece2){
     return (piece1.type == piece2.type && piece1.colour == piece2.colour && piece1.moved == piece2.moved);
 } //annoyance
 
+bool operator!=(const Piece &piece1, const Piece &piece2){
+    return (piece1.type != piece2.type || piece1.colour != piece2.colour || piece1.moved != piece2.moved);
+} //even greater annoyance
+
 enum class mType {
     NORMAL=0,
     CASTLE=1,
@@ -112,7 +116,7 @@ struct Move {
 };
 
 class MoveCalculator{
-    protected:
+    protected: //inital variables
 
     bool calculated;
     std::vector<Move> moves;
@@ -129,22 +133,24 @@ class MoveCalculator{
         calculated = false;
     }
 
-    std::vector<Move> &getMoves(){
+    const std::vector<Move> &getMoves(){
         return moves;
     }
 
-    void calculate(std::array<std::array<Piece,8>,8> &boardArr, pCol turn){
+    void calculate(pCol turn, const std::array<std::array<Piece,8>,8> &boardArr){
         if (calculated){
             return;
         }
 
         for (int x=0; x<8; x++){
             for (int y=0; y<8; y++){
+                if (boardArr[x][y].colour!=turn){
+                    continue;
+                }
+
                 switch (boardArr[x][y].type){
-                    case pType::NONE:
-                        break;
                     case pType::PAWN:
-                        //pawn calc function
+                        pawnCalc(x,y, boardArr);
                         break;
                     case pType::KNIGHT:
                         //knight calc function
@@ -161,6 +167,8 @@ class MoveCalculator{
                     case pType::KING:
                         //king calc function
                         break;
+                    default:
+                        break;
                 }
             }
         }
@@ -169,6 +177,32 @@ class MoveCalculator{
 
         calculated = true;
     }
+
+    protected: //inner functions
+
+    void pawnCalc(int x, int y, const std::array<std::array<Piece,8>,8> &boardArr){
+        Piece pawn = boardArr[x][y];
+        bool promote = false;
+        if (y-static_cast<int>(pawn.colour)<0 || y-static_cast<int>(pawn.colour)>7){
+            return;
+        } else if (y-static_cast<int>(pawn.colour)==0 || y-static_cast<int>(pawn.colour)==7){
+            promote = true;
+        }
+
+        if (boardArr[x][y-static_cast<int>(pawn.colour)] == nullPiece()){
+            if (!promote){
+                moves.push_back(Move{pawn, std::array<int,2>{x,y}, std::array<int,2>{x,y-static_cast<int>(pawn.colour)}, mType::NORMAL});
+                if (pawn.moved == std::array<bool,2>{false,false} && boardArr[x][y - 2*static_cast<int>(pawn.colour)] == nullPiece()){
+                    moves.push_back(Move{pawn, std::array<int,2>{x,y}, std::array<int,2>{x,y-2*static_cast<int>(pawn.colour)}, mType::NORMAL});
+                }
+            } else {
+                for (int i = 3; i<=6; i++){
+                    moves.push_back(Move{pawn, std::array<int,2>{x,y}, std::array<int,2>{x,y-static_cast<int>(pawn.colour)}, static_cast<mType>(i)});
+                }
+            }
+        }
+    }
+
 };
 
 class Chess{
@@ -178,7 +212,6 @@ class Chess{
     std::array<int,2> selectedPos;
     pCol turn;
     MoveCalculator mCalc;
-    std::vector<Move> moves;
 
     Chess(int squareSize, int squareBuffer, int pieceSize){
         this->squareSize = squareSize;
@@ -208,28 +241,34 @@ class Chess{
                 }
             }
         }
-        mCalc = MoveCalculator();
-        moves = mCalc.getMoves();
     }
 
     void update(Uint32 mButtons, float mouseX, float mouseY){
 
-        mCalc.calculate(boardArr,turn);
+        mCalc.calculate(turn, boardArr);
         select(mButtons, mouseX, mouseY);
 
     }
 
-    void draw(SDL_Renderer *renderer, TTF_TextEngine *textengine, TTF_Font *font){
+    void draw(SDL_Renderer *renderer, TTF_TextEngine *textengine){
         SDL_SetRenderDrawColor(renderer, 127, 127, 127, 255);
         SDL_RenderClear(renderer);
 
-        boardDraw(renderer, textengine, font);
+        boardDraw(renderer, textengine);
         movesDraw(renderer);
 
         SDL_RenderPresent(renderer);
     }
 
-    void boardDraw(SDL_Renderer *renderer, TTF_TextEngine *textengine, TTF_Font *font){  
+    void boardDraw(SDL_Renderer *renderer, TTF_TextEngine *textengine){  
+
+        const char* base_path = SDL_GetBasePath(); 
+        std::string font_path = std::string(base_path) + "Arial.ttf";
+        TTF_Font* font = TTF_OpenFont(font_path.c_str(), pieceSize);
+        if (font == NULL){
+            std::cout<<SDL_GetError();
+        }
+
         for (int x = 0; x<8; x++){
             for (int y = 0; y<8; y++){
                 renderRect(renderer,{static_cast<float>(squareBuffer + x*squareSize), static_cast<float>(squareBuffer + y*squareSize)},
@@ -249,6 +288,8 @@ class Chess{
                             getRGB(static_cast<pCol>(static_cast<int>(boardArr[x][y].colour)*(-1))));
             }
         }
+
+        TTF_CloseFont(font);
     }
 
     void movesDraw(SDL_Renderer *renderer){
@@ -256,10 +297,17 @@ class Chess{
             return;
         }
 
+        const char* base_path = SDL_GetBasePath(); 
+        std::string font_path = std::string(base_path) + "Arial.ttf";
+        TTF_Font* font = TTF_OpenFont(font_path.c_str(), squareSize/2);
+        if (font == NULL){
+            std::cout<<SDL_GetError();
+        }
+
         renderCircle(renderer,squareBuffer+squareSize/2+squareSize*selectedPos[0],squareBuffer+squareSize/2+squareSize*selectedPos[1],
                      8, std::array<int,3>{255,0,0});
 
-        for (Move move: moves){
+        for (Move move: mCalc.getMoves()){
             if (move.startpos != selectedPos){
                 continue;
             }
@@ -267,6 +315,8 @@ class Chess{
             renderCircle(renderer,squareBuffer+squareSize/2+squareSize*move.endpos[0],squareBuffer+squareSize/2+squareSize*move.endpos[1],
                          12, std::array<int,3>{0,255,0});
         }
+
+        TTF_CloseFont(font);
     }
 
     void select(Uint32 mButtons, float mouseX, float mouseY){
@@ -279,17 +329,50 @@ class Chess{
             return;
         }
 
-        for (Move move: moves){
+        for (Move move: mCalc.getMoves()){
             if (move.startpos != selectedPos){
                 continue;
             }
-            //move stuff
+            
+            if (std::floor((mouseX-squareBuffer)/squareSize) == move.endpos[0] && std::floor((mouseY-squareBuffer)/squareSize) == move.endpos[1]){
+                moveProcess(move);
+                return;
+            }
         }
 
         if (boardArr[std::floor((mouseX-squareBuffer)/squareSize)][std::floor((mouseY-squareBuffer)/squareSize)].colour == turn){
             selectedPos = {static_cast<int>(std::floor((mouseX-squareBuffer)/squareSize)),
                         static_cast<int>(std::floor((mouseY-squareBuffer)/squareSize))};
+            return;
         }
+
+        selectedPos = {-1,-1};
+    }
+
+    void moveProcess(Move move){
+        
+        for (std::array<Piece,8> col : boardArr){
+            for (Piece piece : col){
+                if (piece.moved == std::array<bool,2>{true,false}){
+                    piece.moved = std::array<bool,2>{true,true};
+                }
+            }
+        }
+        if (move.piece.moved == std::array<bool,2>{false,false}){
+            move.piece.moved = std::array<bool,2>{true,false};
+        }
+
+        boardArr[move.startpos[0]][move.startpos[1]] = nullPiece();
+        boardArr[move.endpos[0]][move.endpos[1]] = move.piece;
+        switch (move.type){
+
+            
+            default:
+                break;
+        }
+
+        turn = static_cast<pCol>( -1 * static_cast<int>(turn) );
+        mCalc.reCalc();
     }
 };
 
@@ -325,13 +408,6 @@ int main(int argc, char* argv[]){
         return 1;
     }
 
-    const char* base_path = SDL_GetBasePath(); 
-    std::string font_path = std::string(base_path) + "Arial.ttf";
-    TTF_Font* font = TTF_OpenFont(font_path.c_str(), pieceSize);
-    if (font == NULL){
-        std::cout<<SDL_GetError();
-    }
-
     Chess game(squareSize, squareBuffer, pieceSize);
 
     while (!done) {
@@ -350,7 +426,7 @@ int main(int argc, char* argv[]){
         mButtons = SDL_GetMouseState(&mouseX, &mouseY); //returns bitmask, use 'bitwise and' (&) and bitmask for intended Mbutton to check if clicked
 
         game.update(mButtons, mouseX, mouseY);
-        game.draw(renderer, textEngine, font);
+        game.draw(renderer, textEngine);
 
         SDL_UpdateWindowSurface(window);
 
@@ -365,7 +441,6 @@ int main(int argc, char* argv[]){
     SDL_DestroyWindow(window);
     SDL_DestroyRenderer(renderer);
     TTF_DestroyRendererTextEngine(textEngine);
-    TTF_CloseFont(font);
 
 
     SDL_Quit();
