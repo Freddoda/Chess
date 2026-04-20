@@ -201,6 +201,28 @@ class MoveCalculator{
                 }
             }
         }
+
+        for (int n = -1; n <= 1; n+=2){
+            if (x+n<0 || x+n>7){
+                continue;
+            }
+
+            if (boardArr[x+n][y-static_cast<int>(pawn.colour)].colour == static_cast<pCol>(static_cast<int>(pawn.colour)*-1)){
+                if (!promote){
+                    moves.push_back(Move{pawn, std::array<int,2>{x,y}, std::array<int,2>{x+n,y-static_cast<int>(pawn.colour)}, mType::NORMAL});
+                } else {
+                    for (int i = 3; i<=6; i++){
+                        moves.push_back(Move{pawn, std::array<int,2>{x,y}, std::array<int,2>{x+n,y-static_cast<int>(pawn.colour)}, static_cast<mType>(i)});
+                    }
+                }
+                continue;
+            }
+
+            if (boardArr[x+n][y].colour == static_cast<pCol>(static_cast<int>(pawn.colour)*-1) && boardArr[x+n][y].moved==std::array<bool,2>{true,false}){
+                moves.push_back(Move{pawn, std::array<int,2>{x,y}, std::array<int,2>{x+n,y-static_cast<int>(pawn.colour)}, mType::ENPASSANT});
+            }
+
+        }
     }
 
 };
@@ -255,7 +277,7 @@ class Chess{
         SDL_RenderClear(renderer);
 
         boardDraw(renderer, textengine);
-        movesDraw(renderer);
+        movesDraw(renderer, textengine);
 
         SDL_RenderPresent(renderer);
     }
@@ -292,7 +314,7 @@ class Chess{
         TTF_CloseFont(font);
     }
 
-    void movesDraw(SDL_Renderer *renderer){
+    void movesDraw(SDL_Renderer *renderer, TTF_TextEngine *engine){
         if (selectedPos == std::array<int,2>{-1,-1}){
             return;
         }
@@ -303,6 +325,7 @@ class Chess{
         if (font == NULL){
             std::cout<<SDL_GetError();
         }
+        std::array<std::string,4> letters = {"N","B","R","Q"};
 
         renderCircle(renderer,squareBuffer+squareSize/2+squareSize*selectedPos[0],squareBuffer+squareSize/2+squareSize*selectedPos[1],
                      8, std::array<int,3>{255,0,0});
@@ -312,8 +335,15 @@ class Chess{
                 continue;
             }
 
-            renderCircle(renderer,squareBuffer+squareSize/2+squareSize*move.endpos[0],squareBuffer+squareSize/2+squareSize*move.endpos[1],
-                         12, std::array<int,3>{0,255,0});
+            if (static_cast<int>(move.type)<3){
+                renderCircle(renderer,squareBuffer+squareSize/2+squareSize*move.endpos[0],squareBuffer+squareSize/2+squareSize*move.endpos[1],
+                            12, std::array<int,3>{0,255,0});
+                continue;
+            }
+            renderText(engine, font, letters[static_cast<int>(move.type)-3],
+                        std::array<int,2>{squareBuffer+squareSize/4+squareSize/2*!(static_cast<int>(move.type)%2)+squareSize*move.endpos[0],
+                                          squareBuffer+squareSize/4+squareSize/2*(static_cast<int>(move.type)>4)+squareSize*move.endpos[1]},
+                       std::array<int,3>{0,255,0});
         }
 
         TTF_CloseFont(font);
@@ -335,8 +365,19 @@ class Chess{
             }
             
             if (std::floor((mouseX-squareBuffer)/squareSize) == move.endpos[0] && std::floor((mouseY-squareBuffer)/squareSize) == move.endpos[1]){
-                moveProcess(move);
-                return;
+                if (static_cast<int>(move.type)<3){    
+                    moveProcess(move);
+                    return;
+                }
+
+                if ( ((((static_cast<int>(mouseX)-squareBuffer)%squareSize<squareSize/2) && static_cast<int>(move.type)%2) || 
+                      (((static_cast<int>(mouseX)-squareBuffer)%squareSize>=squareSize/2) && !(static_cast<int>(move.type)%2))) &&
+                     ((((static_cast<int>(mouseY)-squareBuffer)%squareSize<squareSize/2) && !(static_cast<int>(move.type)>4)) || 
+                      (((static_cast<int>(mouseY)-squareBuffer)%squareSize>=squareSize/2) && static_cast<int>(move.type)>4)) )
+                    {
+                    moveProcess(move);
+                    return;
+                    }
             }
         }
 
@@ -351,8 +392,8 @@ class Chess{
 
     void moveProcess(Move move){
         
-        for (std::array<Piece,8> col : boardArr){
-            for (Piece piece : col){
+        for (std::array<Piece,8> &col : boardArr){
+            for (Piece &piece : col){
                 if (piece.moved == std::array<bool,2>{true,false}){
                     piece.moved = std::array<bool,2>{true,true};
                 }
@@ -366,7 +407,21 @@ class Chess{
         boardArr[move.endpos[0]][move.endpos[1]] = move.piece;
         switch (move.type){
 
-            
+            case mType::ENPASSANT:
+                boardArr[move.endpos[0]][move.endpos[1]+static_cast<int>(move.piece.colour)] = nullPiece();
+                break;
+            case mType::PROMOTE_N:
+                boardArr[move.endpos[0]][move.endpos[1]].type = pType::KNIGHT;
+                break;
+            case mType::PROMOTE_B:
+                boardArr[move.endpos[0]][move.endpos[1]].type = pType::BISHOP;
+                break;
+            case mType::PROMOTE_R:
+                boardArr[move.endpos[0]][move.endpos[1]].type = pType::ROOK;
+                break;
+            case mType::PROMOTE_Q:
+                boardArr[move.endpos[0]][move.endpos[1]].type = pType::QUEEN;
+                break;
             default:
                 break;
         }
