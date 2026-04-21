@@ -156,7 +156,7 @@ class MoveCalculator{
                         knightCalc(x,y, boardArr);
                         break;
                     case pType::BISHOP:
-                        //bishop calc function
+                        bishopCalc(x,y, boardArr);
                         break;
                     case pType::ROOK:
                         //rook calc function
@@ -245,7 +245,14 @@ class MoveCalculator{
                 moves.push_back(Move{knight,std::array<int,2>{x,y},
                                     std::array<int,2>{x+!(n%2)*(-2+4*static_cast<int>(n/2))+(n%2)*i,y+(n%2)*(-2+4*static_cast<int>(n/2))+!(n%2)*i}});
             }
+        }
+    }
 
+    void bishopCalc(int x, int y, const std::array<std::array<Piece,8>,8> &boardArr){
+        Piece bishop = boardArr[x][y];
+
+        for (int i=0; i<4; i++){
+            
         }
     }
 
@@ -525,4 +532,3 @@ int main(int argc, char* argv[]){
     SDL_Quit();
     return 0;
 }
-
