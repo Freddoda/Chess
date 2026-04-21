@@ -153,7 +153,7 @@ class MoveCalculator{
                         pawnCalc(x,y, boardArr);
                         break;
                     case pType::KNIGHT:
-                        //knight calc function
+                        knightCalc(x,y, boardArr);
                         break;
                     case pType::BISHOP:
                         //bishop calc function
@@ -220,6 +220,30 @@ class MoveCalculator{
 
             if (boardArr[x+n][y].colour == static_cast<pCol>(static_cast<int>(pawn.colour)*-1) && boardArr[x+n][y].moved==std::array<bool,2>{true,false}){
                 moves.push_back(Move{pawn, std::array<int,2>{x,y}, std::array<int,2>{x+n,y-static_cast<int>(pawn.colour)}, mType::ENPASSANT});
+            }
+        }
+    }
+
+    void knightCalc(int x, int y, const std::array<std::array<Piece,8>,8> &boardArr){
+        Piece knight = boardArr[x][y];
+        for (int n=0; n<4; n++){
+
+            if (x*!(n%2)+y*(n%2)-2+4*static_cast<int>(n/2)>7 || x*!(n%2)+y*(n%2)-2+4*static_cast<int>(n/2)<0){
+                continue;
+            }
+
+            for (int i=-1; i<=1; i+=2){
+
+                if (x*(n%2)+y*!(n%2)+i>7 || x*(n%2)+y*!(n%2)+i<0){
+                    continue;
+                }
+
+                if (boardArr[x+!(n%2)*(-2+4*static_cast<int>(n/2))+(n%2)*i][y+(n%2)*(-2+4*static_cast<int>(n/2))+!(n%2)*i].colour==knight.colour){
+                    continue;
+                }
+
+                moves.push_back(Move{knight,std::array<int,2>{x,y},
+                                    std::array<int,2>{x+!(n%2)*(-2+4*static_cast<int>(n/2))+(n%2)*i,y+(n%2)*(-2+4*static_cast<int>(n/2))+!(n%2)*i}});
             }
 
         }
