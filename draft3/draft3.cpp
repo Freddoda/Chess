@@ -6,6 +6,7 @@
 #include<thread>
 #include<vector>
 #include<array>
+#include<cmath>
 
 void renderRect(SDL_Renderer* renderer, std::array<float,2> pos, std::array<float,2> size, std::array<int,3> colour, bool fill){
     SDL_SetRenderDrawColor(renderer, colour[0], colour[1], colour[2], 255);
