@@ -7,6 +7,7 @@
 #include<vector>
 #include<array>
 #include<cmath>
+#include<algorithm>
 
 void renderRect(SDL_Renderer* renderer, std::array<float,2> pos, std::array<float,2> size, std::array<int,3> colour, bool fill){
     SDL_SetRenderDrawColor(renderer, colour[0], colour[1], colour[2], 255);
@@ -253,7 +254,21 @@ class MoveCalculator{
         Piece bishop = boardArr[x][y];
 
         for (int i=0; i<4; i++){
-            
+            for (int n=1; n<=std::min(x*(1-2*(i%2))+7*(i%2),y*(1-2*(i<2))+7*(i<2)); n++){
+
+                Piece square = boardArr[x+n*(1-2*!(i%2))][y+n*(1-2*!(i<2))];
+
+                if (square.colour==bishop.colour){
+                    break;
+                }
+
+                moves.push_back(Move{bishop,std::array<int,2>{x,y},std::array<int,2>{x+n*(1-2*!(i%2)),y+n*(1-2*!(i<2))}});
+
+                if (square.colour!=pCol::NONE){
+                    break;
+                }
+
+            }
         }
     }
 
