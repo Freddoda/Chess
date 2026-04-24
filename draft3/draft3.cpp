@@ -161,10 +161,11 @@ class MoveCalculator{
                         bishopCalc(x,y, boardArr);
                         break;
                     case pType::ROOK:
-                        //rook calc function
+                        rookCalc(x,y, boardArr);
                         break;
                     case pType::QUEEN:
-                        //queen calc function
+                        bishopCalc(x,y, boardArr);
+                        rookCalc(x,y, boardArr);
                         break;
                     case pType::KING:
                         //king calc function
@@ -268,6 +269,25 @@ class MoveCalculator{
                     break;
                 }
 
+            }
+        }
+    }
+
+    void rookCalc(int x, int y, const std::array<std::array<Piece,8>,8> &boardArr){
+        Piece rook = boardArr[x][y];
+
+        for (int i=0; i<4; i++){
+            for (int n=1; n<= (x*(1-2*(i%2))+7*(i%2))*(i<2)+(y*(1-2*(i%2))+7*(i%2))*!(i<2); n++){
+                Piece square = boardArr[x+n*(1-2*!(i%2))*(i<2)][y+n*(1-2*!(i%2))*!(i<2)];
+
+                if (square.colour==rook.colour){
+                    break;
+                }
+                moves.push_back(Move{rook,std::array<int,2>{x,y},std::array<int,2>{x+n*(1-2*!(i%2))*(i<2),
+                                                                                   y+n*(1-2*!(i%2))*!(i<2)}});
+                if (square.colour!=pCol::NONE){
+                    break;
+                }
             }
         }
     }
