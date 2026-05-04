@@ -168,7 +168,7 @@ class MoveCalculator{
                         rookCalc(x,y, boardArr);
                         break;
                     case pType::KING:
-                        //king calc function
+                        kingCalc(x,y,boardArr);
                         break;
                     default:
                         break;
@@ -292,6 +292,29 @@ class MoveCalculator{
         }
     }
 
+    void kingCalc(int x, int y, const std::array<std::array<Piece,8>,8> &boardArr){
+        Piece king = boardArr[x][y];
+        for (int modX=-1; modX<=1; modX++){
+            for (int modY=-1; modY<=1; modY++){
+                if (x+modX>7 || y+modY>7 || x+modX<0 || y+modY<0){
+                    continue;
+                }
+
+                if (boardArr[x+modX][y+modY].colour==king.colour){
+                    continue;
+                }
+
+                if (!isposCheck(x+modX,y+modY,boardArr,king)){
+                    moves.push_back(Move{king,std::array<int,2>{x,y},std::array<int,2>{x+modX,y+modY},mType::NORMAL});
+                }
+            }
+        }
+    }
+
+    bool isposCheck(int x, int y, const std::array<std::array<Piece,8>,8> &boardArr, Piece king){
+
+        return false;
+    }
 };
 
 class Chess{
