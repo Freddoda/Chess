@@ -176,7 +176,7 @@ class MoveCalculator{
             }
         }
 
-        //check stuff
+        checkFinder::manageChecks(boardArr, moves, turn);
 
         calculated = true;
     }
@@ -316,6 +316,40 @@ class MoveCalculator{
         return false;
     }
 };
+
+namespace checkFinder{
+    void manageChecks(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn){
+        int kx = -1;
+        int ky = -1;
+        for (int n1=0; n1<8; n1++){
+            for (int n2=0; n2<8; n2++){
+                if (boardArr[n1][n2].type == pType::KING && boardArr[n1][n2].colour == turn){
+                    kx = n1;
+                    ky = n2;
+                    break;
+                }
+            }
+            if (kx>-1 && ky>-1){
+                break;
+            }
+        }
+
+        pawnhandle(boardArr, moves, turn, {kx,ky});
+    }
+
+    void pawnhandle(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn, std::array<int,2> kingpos){
+        if (kingpos[1]==static_cast<int>(static_cast<int>(turn)*(-3.5)+3.5)){
+            return;
+        }
+        std::vector<std::array<int,2>> pawns;
+        if (kingpos[0]<7){
+            if (boardArr[kingpos[0]+1][kingpos[1]-static_cast<int>(turn)].type == pType::PAWN &&
+                boardArr[kingpos[0]+1][kingpos[1]-static_cast<int>(turn)].colour == static_cast<pCol>(static_cast<int>(turn)*(-1))){
+                    pawns.push_back(std::array<int,2> {kingpos[0]+1,kingpos[1]-static_cast<int>(turn)});
+            }
+        }
+    }
+}
 
 class Chess{
     public:
