@@ -348,6 +348,32 @@ namespace checkFinder{
                     pawns.push_back(std::array<int,2> {kingpos[0]+1,kingpos[1]-static_cast<int>(turn)});
             }
         }
+        if (kingpos[0]>0){
+            if (boardArr[kingpos[0]-1][kingpos[1]-static_cast<int>(turn)].type == pType::PAWN &&
+                boardArr[kingpos[0]-1][kingpos[1]-static_cast<int>(turn)].colour == static_cast<pCol>(static_cast<int>(turn)*(-1))){
+                    pawns.push_back(std::array<int,2> {kingpos[0]-1,kingpos[1]-static_cast<int>(turn)});
+            }
+        }
+        if (pawns.size()==0){
+            return;
+        }
+        std::vector<int> poppedMoves;
+        for (Move &move : moves){
+            if (move.piece.type == pType::KING){
+                continue;
+            }
+            if (pawns.size()==1 && move.endpos==pawns[0]){
+                continue;
+            }
+            poppedMoves.push_back(std::distance(moves.begin(),std::find(moves.begin(),moves.end(),move)));
+        }
+        if (poppedMoves.size()==0){
+            return;
+        }
+        std::reverse(poppedMoves.begin(),poppedMoves.end());
+        for (int n : poppedMoves){
+            moves.erase(moves.begin()+n);
+        }
     }
 }
 
