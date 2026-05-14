@@ -117,6 +117,18 @@ struct Move {
     mType type;
 };
 
+bool operator==(const Move &move1, const Move &move2){
+    return (move1.startpos == move2.startpos && move1.endpos == move2.endpos && move1.type == move2.type);
+} //annoyance
+
+namespace checkFinder{
+    void manageChecks(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn);
+    void pawnhandle(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn, std::array<int,2> kingpos);
+    void knighthandle(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn, std::array<int,2> kingpos);
+    void bishophandle(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn, std::array<int,2> kingpos);
+    void rookhandle(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn, std::array<int,2> kingpos);
+}
+
 class MoveCalculator{
     protected: //inital variables
 
@@ -221,7 +233,7 @@ class MoveCalculator{
                 continue;
             }
 
-            if (boardArr[x+n][y].colour == static_cast<pCol>(static_cast<int>(pawn.colour)*-1) && boardArr[x+n][y].moved==std::array<bool,2>{true,false}){
+            if (boardArr[x+n][y].colour == static_cast<pCol>(static_cast<int>(pawn.colour)*-1) && boardArr[x+n][y].moved==std::array<bool,2>{true,false} && y==static_cast<int>(3.5-0.5*static_cast<int>(pawn.colour))){
                 moves.push_back(Move{pawn, std::array<int,2>{x,y}, std::array<int,2>{x+n,y-static_cast<int>(pawn.colour)}, mType::ENPASSANT});
             }
         }
