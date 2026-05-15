@@ -123,10 +123,11 @@ bool operator==(const Move &move1, const Move &move2){
 
 namespace checkFinder{
     void manageChecks(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn);
-    void pawnhandle(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn, std::array<int,2> kingpos);
-    void knighthandle(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn, std::array<int,2> kingpos);
-    void bishophandle(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn, std::array<int,2> kingpos);
-    void rookhandle(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn, std::array<int,2> kingpos);
+    void movePopper(std::vector<Move> &moves, std::vector<std::array<int,2>> checkers);
+    std::vector<std::array<int,2>> pawnhandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos);
+    std::vector<std::array<int,2>> knighthandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos);
+    std::vector<std::array<int,2>> bishophandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos);
+    std::vector<std::array<int,2>> rookhandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos);
 }
 
 class MoveCalculator{
@@ -324,7 +325,12 @@ class MoveCalculator{
     }
 
     bool isposCheck(int x, int y, const std::array<std::array<Piece,8>,8> &boardArr, Piece king){
-
+        if (checkFinder::pawnhandle(boardArr, king.colour, std::array<int,2>{x,y}).size()>0){
+            return true;
+        }
+        if (checkFinder::knighthandle(boardArr, king.colour, std::array<int,2>{x,y}).size()>0){
+            return true;
+        }
         return false;
     }
 };
@@ -346,14 +352,38 @@ namespace checkFinder{
             }
         }
 
-        pawnhandle(boardArr, moves, turn, {kx,ky});
+        movePopper(moves,pawnhandle(boardArr, turn, {kx,ky}));
+        movePopper(moves,knighthandle(boardArr, turn, {kx,ky}));
     }
 
-    void pawnhandle(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn, std::array<int,2> kingpos){
-        if (kingpos[1]==static_cast<int>(static_cast<int>(turn)*(-3.5)+3.5)){
+    void movePopper(std::vector<Move> &moves, std::vector<std::array<int,2>> checkers){
+        if (checkers.size()==0){
             return;
         }
+        std::vector<int> poppedMoves;
+        for (Move &move : moves){
+            if (move.piece.type == pType::KING){
+                continue;
+            }
+            if (checkers.size()==1 && move.endpos==checkers[0]){
+                continue;
+            }
+            poppedMoves.push_back(std::distance(moves.begin(),std::find(moves.begin(),moves.end(),move)));
+        }
+        if (poppedMoves.size()==0){
+            return;
+        }
+        std::reverse(poppedMoves.begin(),poppedMoves.end());
+        for (int n : poppedMoves){
+            moves.erase(moves.begin()+n);
+        }
+    }
+
+    std::vector<std::array<int,2>> pawnhandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos){
         std::vector<std::array<int,2>> pawns;
+        if (kingpos[1]==static_cast<int>(static_cast<int>(turn)*(-3.5)+3.5)){
+            return pawns;
+        }
         if (kingpos[0]<7){
             if (boardArr[kingpos[0]+1][kingpos[1]-static_cast<int>(turn)].type == pType::PAWN &&
                 boardArr[kingpos[0]+1][kingpos[1]-static_cast<int>(turn)].colour == static_cast<pCol>(static_cast<int>(turn)*(-1))){
@@ -366,26 +396,32 @@ namespace checkFinder{
                     pawns.push_back(std::array<int,2> {kingpos[0]-1,kingpos[1]-static_cast<int>(turn)});
             }
         }
-        if (pawns.size()==0){
-            return;
-        }
-        std::vector<int> poppedMoves;
-        for (Move &move : moves){
-            if (move.piece.type == pType::KING){
+        return pawns;
+    }
+
+    std::vector<std::array<int,2>> knighthandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos){
+        std::vector<std::array<int,2>> knights;
+        for (int n=0; n<4; n++){
+
+            if (kingpos[0]*!(n%2)+kingpos[1]*(n%2)-2+4*static_cast<int>(n/2)>7 || kingpos[0]*!(n%2)+kingpos[1]*(n%2)-2+4*static_cast<int>(n/2)<0){
                 continue;
             }
-            if (pawns.size()==1 && move.endpos==pawns[0]){
-                continue;
+
+            for (int i=-1; i<=1; i+=2){
+
+                if (kingpos[0]*(n%2)+kingpos[1]*!(n%2)+i>7 || kingpos[0]*(n%2)+kingpos[1]*!(n%2)+i<0){
+                    continue;
+                }
+
+                if (boardArr[kingpos[0]+!(n%2)*(-2+4*static_cast<int>(n/2))+(n%2)*i][kingpos[1]+(n%2)*(-2+4*static_cast<int>(n/2))+!(n%2)*i].colour!=static_cast<pCol>(static_cast<int>(turn)*(-1)
+                    || boardArr[kingpos[0]+!(n%2)*(-2+4*static_cast<int>(n/2))+(n%2)*i][kingpos[1]+(n%2)*(-2+4*static_cast<int>(n/2))+!(n%2)*i].type!=pType::KNIGHT)){
+                    continue;
+                }
+
+                knights.push_back(std::array<int,2>{kingpos[0]+!(n%2)*(-2+4*static_cast<int>(n/2))+(n%2)*i,kingpos[1]+(n%2)*(-2+4*static_cast<int>(n/2))+!(n%2)*i});
             }
-            poppedMoves.push_back(std::distance(moves.begin(),std::find(moves.begin(),moves.end(),move)));
         }
-        if (poppedMoves.size()==0){
-            return;
-        }
-        std::reverse(poppedMoves.begin(),poppedMoves.end());
-        for (int n : poppedMoves){
-            moves.erase(moves.begin()+n);
-        }
+        return knights;
     }
 }
 
