@@ -413,11 +413,11 @@ namespace checkFinder{
                     continue;
                 }
 
-                if (boardArr[kingpos[0]+!(n%2)*(-2+4*static_cast<int>(n/2))+(n%2)*i][kingpos[1]+(n%2)*(-2+4*static_cast<int>(n/2))+!(n%2)*i].colour!=static_cast<pCol>(static_cast<int>(turn)*(-1)
-                    || boardArr[kingpos[0]+!(n%2)*(-2+4*static_cast<int>(n/2))+(n%2)*i][kingpos[1]+(n%2)*(-2+4*static_cast<int>(n/2))+!(n%2)*i].type!=pType::KNIGHT)){
+                if (boardArr[kingpos[0]+!(n%2)*(-2+4*static_cast<int>(n/2))+(n%2)*i][kingpos[1]+(n%2)*(-2+4*static_cast<int>(n/2))+!(n%2)*i].colour!=static_cast<pCol>(static_cast<int>(turn)*(-1))
+                    || boardArr[kingpos[0]+!(n%2)*(-2+4*static_cast<int>(n/2))+(n%2)*i][kingpos[1]+(n%2)*(-2+4*static_cast<int>(n/2))+!(n%2)*i].type!=pType::KNIGHT){
                     continue;
                 }
-
+                
                 knights.push_back(std::array<int,2>{kingpos[0]+!(n%2)*(-2+4*static_cast<int>(n/2))+(n%2)*i,kingpos[1]+(n%2)*(-2+4*static_cast<int>(n/2))+!(n%2)*i});
             }
         }
