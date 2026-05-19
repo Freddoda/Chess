@@ -122,12 +122,27 @@ bool operator==(const Move &move1, const Move &move2){
 } //annoyance
 
 namespace checkFinder{
+    struct subcheckret{
+        bool check;
+        bool pin;
+        std::vector<std::array<int,2>> between;
+        std::array<int,2> pinnpos;
+    };
+
+    struct checkfindret{
+        subcheckret up2left;
+        subcheckret right2up;
+        subcheckret down2right;
+        subcheckret left2down;
+    };
+
     void manageChecks(const std::array<std::array<Piece,8>,8> &boardArr, std::vector<Move> &moves, pCol turn);
     void movePopper(std::vector<Move> &moves, std::vector<std::array<int,2>> checkers);
+    void movePopper(std::vector<Move> &moves, checkfindret results);
     std::vector<std::array<int,2>> pawnhandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos);
     std::vector<std::array<int,2>> knighthandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos);
-    std::vector<std::array<int,2>> bishophandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos);
-    std::vector<std::array<int,2>> rookhandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos);
+    checkfindret bishophandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos);
+    checkfindret rookhandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos);
 }
 
 class MoveCalculator{
@@ -422,6 +437,93 @@ namespace checkFinder{
             }
         }
         return knights;
+    }
+
+    checkfindret bishophandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos){
+        checkfindret results;
+        std::array<subcheckret*,4> resArr = {&results.up2left,&results.right2up,&results.down2right,&results.left2down};
+        int mod1;
+        int mod2;
+        bool check;
+        bool pin;
+        bool pinmode;
+        std::vector<std::array<int,2>> between;
+        for (int n=0; n<4; n++){
+            if (n==0 || n==1){
+                mod1=-1;
+            } else {
+                mod1=1;
+            }
+            if (n==1 || n==2){
+                mod2=1;
+            } else {
+                mod2=-1;
+            }
+            check = false;
+            pin = false;
+            std::array<int,2> pinnpos;
+            pinmode = false;
+            between.clear();
+            for (int i=1; i<=std::min((-1*mod1)*kingpos[0]+mod1*3.5+3.5,(-1*mod2)*kingpos[1]+mod2*3.5+3.5);i++){
+                if (boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].colour==turn){
+                    if (pinmode){
+                        between.clear();
+                        break;
+                    } else {
+                        pinmode = true;
+                        pinnpos = {kingpos[0]+mod1*i,kingpos[1]+mod2*i};
+                    }
+                }
+                between.push_back({kingpos[0]+mod1*i,kingpos[1]+mod2*i});
+                if (static_cast<int>(boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].colour)==static_cast<int>(turn)*(-1)){
+                    if (boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].type==pType::BISHOP){
+                        if (pinmode){
+                            pin = true;
+                        } else {
+                            check=true;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        return results;
+    }
+
+    checkfindret rookhandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos){
+        checkfindret results;
+        std::array<subcheckret*,4> resArr = {&results.up2left,&results.right2up,&results.down2right,&results.left2down};
+        int mod1;
+        int mod2;
+        bool check;
+        bool pin;
+        bool pinmode;
+        std::vector<std::array<int,2>> between;
+        for (int n=0; n<4; n++){
+            if (n%2){
+                mod1=0;
+                if (n==1){
+                    mod2=1;
+                } else {
+                    mod2=-1;
+                }
+            } else {
+                mod2=0;
+                if (n==2){
+                    mod1=1;
+                } else {
+                    mod1=-1;
+                }
+            }
+            check = false;
+            pin = false;
+            pinmode = false;
+            between.clear();
+            for (int i=1; i<= std::abs(mod1)*((-1*mod1)*kingpos[0]+mod1*3.5+3.5) + std::abs(mod2)*((-1*mod2)*kingpos[1]+mod2*3.5+3.5); i++){
+
+            }
+        }
+        return results;
     }
 }
 
