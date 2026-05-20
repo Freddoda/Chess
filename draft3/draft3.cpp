@@ -346,7 +346,7 @@ class MoveCalculator{
         if (checkFinder::knighthandle(boardArr, king.colour, std::array<int,2>{x,y}).size()>0){
             return true;
         }
-        checkFinder::checkfindret bishops = checkFinder::rookhandle(boardArr, king.colour, std::array<int,2>{x,y});
+        checkFinder::checkfindret bishops = checkFinder::bishophandle(boardArr, king.colour, std::array<int,2>{x,y});
         if (bishops.down2right.check || bishops.up2left.check || bishops.left2down.check || bishops.right2up.check){
             return true;
         }
@@ -477,7 +477,7 @@ namespace checkFinder{
             pinmode = false;
             between.clear();
             for (int i=1; i<=std::min((-1*mod1)*kingpos[0]+mod1*3.5+3.5,(-1*mod2)*kingpos[1]+mod2*3.5+3.5);i++){
-                if (boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].colour==turn){
+                if (boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].colour==turn && boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].type!=pType::KING){
                     if (pinmode){
                         between.clear();
                         break;
@@ -541,7 +541,7 @@ namespace checkFinder{
             pinmode = false;
             between.clear();
             for (int i=1; i<= std::abs(mod1)*((-1*mod1)*kingpos[0]+mod1*3.5+3.5) + std::abs(mod2)*((-1*mod2)*kingpos[1]+mod2*3.5+3.5); i++){
-                if (boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].colour==turn){
+                if (boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].colour==turn && boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].type!=pType::KING){
                     if (pinmode){
                         between.clear();
                         break;
