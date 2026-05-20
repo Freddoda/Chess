@@ -346,6 +346,14 @@ class MoveCalculator{
         if (checkFinder::knighthandle(boardArr, king.colour, std::array<int,2>{x,y}).size()>0){
             return true;
         }
+        checkFinder::checkfindret bishops = checkFinder::rookhandle(boardArr, king.colour, std::array<int,2>{x,y});
+        if (bishops.down2right.check || bishops.up2left.check || bishops.left2down.check || bishops.right2up.check){
+            return true;
+        }
+        checkFinder::checkfindret rooks = checkFinder::rookhandle(boardArr, king.colour, std::array<int,2>{x,y});
+        if (rooks.down2right.check || rooks.up2left.check || rooks.left2down.check || rooks.right2up.check){
+            return true;
+        }
         return false;
     }
 };
@@ -392,6 +400,10 @@ namespace checkFinder{
         for (int n : poppedMoves){
             moves.erase(moves.begin()+n);
         }
+    }
+
+    void movePopper(std::vector<Move> &moves, checkfindret results){
+
     }
 
     std::vector<std::array<int,2>> pawnhandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos){
@@ -476,7 +488,7 @@ namespace checkFinder{
                 }
                 between.push_back({kingpos[0]+mod1*i,kingpos[1]+mod2*i});
                 if (static_cast<int>(boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].colour)==static_cast<int>(turn)*(-1)){
-                    if (boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].type==pType::BISHOP){
+                    if (boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].type==pType::BISHOP || boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].type==pType::QUEEN){
                         if (pinmode){
                             pin = true;
                         } else {
@@ -484,6 +496,14 @@ namespace checkFinder{
                         }
                         break;
                     }
+                }
+            }
+            resArr[n]->check=check;
+            resArr[n]->pin=pin;
+            if (pin || check){
+                resArr[n]->between=between;
+                if (pin){
+                    resArr[n]->pinnpos=pinnpos;
                 }
             }
         }
@@ -517,10 +537,38 @@ namespace checkFinder{
             }
             check = false;
             pin = false;
+            std::array<int,2> pinnpos;
             pinmode = false;
             between.clear();
             for (int i=1; i<= std::abs(mod1)*((-1*mod1)*kingpos[0]+mod1*3.5+3.5) + std::abs(mod2)*((-1*mod2)*kingpos[1]+mod2*3.5+3.5); i++){
-
+                if (boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].colour==turn){
+                    if (pinmode){
+                        between.clear();
+                        break;
+                    } else {
+                        pinmode = true;
+                        pinnpos = {kingpos[0]+mod1*i,kingpos[1]+mod2*i};
+                    }
+                }
+                between.push_back({kingpos[0]+mod1*i,kingpos[1]+mod2*i});
+                if (static_cast<int>(boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].colour)==static_cast<int>(turn)*(-1)){
+                    if (boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].type==pType::ROOK || boardArr[kingpos[0]+mod1*i][kingpos[1]+mod2*i].type==pType::QUEEN){
+                        if (pinmode){
+                            pin = true;
+                        } else {
+                            check=true;
+                        }
+                        break;
+                    }
+                }
+            }
+            resArr[n]->check=check;
+            resArr[n]->pin=pin;
+            if (pin || check){
+                resArr[n]->between=between;
+                if (pin){
+                    resArr[n]->pinnpos=pinnpos;
+                }
             }
         }
         return results;
