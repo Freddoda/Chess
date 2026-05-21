@@ -9,6 +9,20 @@
 #include<cmath>
 #include<algorithm>
 
+template <typename T>
+bool listContains(const std::vector<T> &list, T item){
+    bool contains = false;
+    int index = 0;
+    while (!contains && index<list.size()){
+        if (list[index]==item){
+            contains=true;
+        } else {
+            index++;
+        }
+    }
+    return contains;
+}
+
 void renderRect(SDL_Renderer* renderer, std::array<float,2> pos, std::array<float,2> size, std::array<int,3> colour, bool fill){
     SDL_SetRenderDrawColor(renderer, colour[0], colour[1], colour[2], 255);
     SDL_FRect *rect = new SDL_FRect{pos[0],pos[1],size[0],size[1]};
@@ -377,6 +391,8 @@ namespace checkFinder{
 
         movePopper(moves,pawnhandle(boardArr, turn, {kx,ky}));
         movePopper(moves,knighthandle(boardArr, turn, {kx,ky}));
+        movePopper(moves,bishophandle(boardArr, turn, {kx,ky}));
+        movePopper(moves,rookhandle(boardArr, turn, {kx,ky}));
     }
 
     void movePopper(std::vector<Move> &moves, std::vector<std::array<int,2>> checkers){
@@ -403,7 +419,35 @@ namespace checkFinder{
     }
 
     void movePopper(std::vector<Move> &moves, checkfindret results){
+        std::array<subcheckret*,4> resArr = {&results.up2left,&results.right2up,&results.down2right,&results.left2down};
+        for (subcheckret* &res : resArr){
+            if (res->pin || res->check){
+                std::vector<int> poppedMoves;
 
+                for (Move &move: moves){
+                    if (res->pin){
+                        if (move.startpos!=res->pinnpos){
+                            continue;
+                        } else if (listContains(res->between, move.endpos)){
+                            continue;
+                        }
+                    }
+                    if (res->check){
+                        if (move.piece.type==pType::KING){
+                            continue;
+                        } else if (listContains(res->between, move.endpos)){
+                            continue;
+                        }
+                    }
+                    poppedMoves.push_back(std::distance(moves.begin(),std::find(moves.begin(),moves.end(),move)));
+                }
+
+                std::reverse(poppedMoves.begin(),poppedMoves.end());
+                for (int n : poppedMoves){
+                    moves.erase(moves.begin()+n);
+                }
+            }
+        }
     }
 
     std::vector<std::array<int,2>> pawnhandle(const std::array<std::array<Piece,8>,8> &boardArr, pCol turn, std::array<int,2> kingpos){
