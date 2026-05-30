@@ -351,6 +351,19 @@ class MoveCalculator{
                 }
             }
         }
+
+        if (king.moved[0] || isposCheck(x,y,boardArr,king)){
+            return;
+        }
+        for (int i=-1; i<2; i+=2){
+            if (boardArr[static_cast<int>(3.5+3.5*i)][y].moved[0]){
+                continue;
+            }
+            if (isposCheck(x+1*i,y,boardArr,king) || isposCheck(x+2*i,y,boardArr,king)){
+                continue;
+            }
+            moves.push_back(Move{king,std::array<int,2>{x,y},std::array<int,2>{x+i*2,y},mType::CASTLE});
+        }
     }
 
     bool isposCheck(int x, int y, const std::array<std::array<Piece,8>,8> &boardArr, Piece king){
@@ -813,6 +826,15 @@ class Chess{
                 break;
             case mType::PROMOTE_Q:
                 boardArr[move.endpos[0]][move.endpos[1]].type = pType::QUEEN;
+                break;
+            case mType::CASTLE:
+                if (move.endpos[0]<move.startpos[0]){
+                    boardArr[move.endpos[0]+1][move.endpos[1]]=boardArr[0][move.endpos[1]];
+                    boardArr[0][move.endpos[1]] = nullPiece();
+                } else {
+                    boardArr[move.endpos[0]-1][move.endpos[1]]=boardArr[7][move.endpos[1]];
+                    boardArr[7][move.endpos[1]] = nullPiece();
+                }
                 break;
             default:
                 break;
