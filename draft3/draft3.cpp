@@ -362,6 +362,9 @@ class MoveCalculator{
             if (isposCheck(x+1*i,y,boardArr,king) || isposCheck(x+2*i,y,boardArr,king)){
                 continue;
             }
+            if (boardArr[x+1*i][y]!=nullPiece() || boardArr[x+2*i][y]!=nullPiece()){
+                continue;
+            }
             moves.push_back(Move{king,std::array<int,2>{x,y},std::array<int,2>{x+i*2,y},mType::CASTLE});
         }
     }
