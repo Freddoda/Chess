@@ -60,6 +60,90 @@ void renderText(TTF_TextEngine *textengine, TTF_Font *font, std::string text, st
     delete height;
 }
 
+class Button{
+    std::string text;
+    std::array<int,2> pos;
+    std::array<int,2> size;
+    std::array<int,3> col;
+    bool clicked;
+    bool clicking;
+
+    Button(std::string text, std::array<int,2> pos, std::array<int,2> size, std::array<int,3> col){
+        this->text = text;
+        this->pos = pos;
+        this->size = size;
+        this->col = col;
+        clicked = false;
+        clicking = false;
+    }
+
+    void setText(std::string text){
+        this->text = text;
+    }
+
+    bool hover(float mouseX, float mouseY){
+        if (mouseX<pos[0] || mouseX>pos[0]+size[0]){
+            return false;
+        }
+        if (mouseY<pos[1] || mouseY>pos[1]+size[1]){
+            return false;
+        }
+        return true;
+    }
+
+    void clicked(Uint32 mButtons, float mouseX, float mouseY){
+        if (!hover(mouseX, mouseY)){
+            if (clicking){
+                clicking = false;
+                clicked = true;
+            }
+            return;
+        }
+        if (mButtons & SDL_BUTTON_LEFT){
+            clicking = true;
+            return;
+        }
+        if (clicking){
+            clicking = false;
+            clicked = true;
+         }
+        return;
+    }
+
+    bool getclicked(){
+        if (clicked){
+            clicked = false;
+            return true;
+        }
+        return false;
+    }
+
+    void draw(SDL_Renderer *renderer, TTF_TextEngine *engine, float mouseX, float mouseY){
+        if (clicking){
+            renderRect(renderer, std::array<float,2>{static_cast<float>(pos[0]),static_cast<float>(pos[1])}, 
+                        std::array<float,2>{static_cast<float>(size[0]),static_cast<float>(size[1])}, 
+                        std::array<int,3>{col[0]/2,col[1]/2,col[2]/2}, true);
+        } else if (hover(mouseX,mouseY)){
+            renderRect(renderer, std::array<float,2>{static_cast<float>(pos[0]),static_cast<float>(pos[1])}, 
+                        std::array<float,2>{static_cast<float>(size[0]),static_cast<float>(size[1])}, 
+                        std::array<int,3>{col[0]+(255-col[0])/2,col[1]+(255-col[1])/2,col[2]+(255-col[2])/2}, true);
+        } else {
+            renderRect(renderer, std::array<float,2>{static_cast<float>(pos[0]),static_cast<float>(pos[1])}, 
+                        std::array<float,2>{static_cast<float>(size[0]),static_cast<float>(size[1])}, col, true);
+        }
+
+        const char* base_path = SDL_GetBasePath(); 
+        std::string font_path = std::string(base_path) + "Arial.ttf";
+        TTF_Font* font = TTF_OpenFont(font_path.c_str(), size[1]);
+        if (font == NULL){
+            std::cout<<SDL_GetError();
+        }
+
+        renderText(engine, font, text, std::array<int,2>{static_cast<int>(pos[0]+size[0]/2),static_cast<int>(pos[1]+size[1]/2)}
+                    , std::array<int,3>{255,255,255});
+    }
+};
+
 enum class pCol {
     BLACK=-1,
     NONE=0,
@@ -635,6 +719,14 @@ namespace checkFinder{
     }
 }
 
+struct Position{
+
+};
+
+class Bot{
+
+};
+
 class Chess{
     public:
     int squareSize, squareBuffer, pieceSize;
@@ -642,6 +734,9 @@ class Chess{
     std::array<int,2> selectedPos;
     pCol turn;
     MoveCalculator mCalc;
+    bool playing;
+    bool bot;
+    pCol botCol;
 
     Chess(int squareSize, int squareBuffer, int pieceSize){
         this->squareSize = squareSize;
@@ -671,12 +766,20 @@ class Chess{
                 }
             }
         }
+        playing = false;
+        bot = false;
+        botCol = pCol::NONE;
     }
 
     void update(Uint32 mButtons, float mouseX, float mouseY){
 
-        mCalc.calculate(turn, boardArr);
-        select(mButtons, mouseX, mouseY);
+        if (playing){
+            mCalc.calculate(turn, boardArr);
+            select(mButtons, mouseX, mouseY);
+        }
+        else{
+            
+        }
 
     }
 
