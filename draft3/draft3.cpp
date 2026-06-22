@@ -60,7 +60,8 @@ void renderText(TTF_TextEngine *textengine, TTF_Font *font, std::string text, st
     delete height;
 }
 
-class Button{
+class Buttonclickable{
+    protected:
     std::string text;
     std::array<int,2> pos;
     std::array<int,2> size;
@@ -68,13 +69,30 @@ class Button{
     bool clicked;
     bool clicking;
 
-    Button(std::string text, std::array<int,2> pos, std::array<int,2> size, std::array<int,3> col){
+    public:
+    Buttonclickable(){
+        this->text = "";
+        this->pos = std::array<int,2>{0,0};
+        this->size = std::array<int,2>{0,0};
+        this->col = std::array<int,3>{0,0,0};
+        clicked = false;
+        clicking = false;
+    }
+
+    Buttonclickable(std::string text, std::array<int,2> pos, std::array<int,2> size, std::array<int,3> col){
         this->text = text;
         this->pos = pos;
         this->size = size;
         this->col = col;
         clicked = false;
         clicking = false;
+    }
+
+    void init(std::string text, std::array<int,2> pos, std::array<int,2> size, std::array<int,3> col){
+        this->text = text;
+        this->pos = pos;
+        this->size = size;
+        this->col = col;
     }
 
     void setText(std::string text){
@@ -141,6 +159,8 @@ class Button{
 
         renderText(engine, font, text, std::array<int,2>{static_cast<int>(pos[0]+size[0]/2),static_cast<int>(pos[1]+size[1]/2)}
                     , std::array<int,3>{255,255,255});
+        
+        TTF_CloseFont(font);
     }
 };
 
@@ -737,6 +757,9 @@ class Chess{
     bool playing;
     bool bot;
     pCol botCol;
+    Buttonclickable button1;
+    Buttonclickable button2;
+
 
     Chess(int squareSize, int squareBuffer, int pieceSize){
         this->squareSize = squareSize;
@@ -789,6 +812,10 @@ class Chess{
 
         boardDraw(renderer, textengine);
         movesDraw(renderer, textengine);
+
+        if (!playing){
+
+        }
 
         SDL_RenderPresent(renderer);
     }
