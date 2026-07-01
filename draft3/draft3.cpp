@@ -100,10 +100,10 @@ class Buttonclickable{
     }
 
     bool hover(float mouseX, float mouseY){
-        if (mouseX<pos[0] || mouseX>pos[0]+size[0]){
+        if (mouseX<pos[0]-size[0]/2 || mouseX>pos[0]+size[0]/2){
             return false;
         }
-        if (mouseY<pos[1] || mouseY>pos[1]+size[1]){
+        if (mouseY<pos[1]-size[1]/2 || mouseY>pos[1]+size[1]/2){
             return false;
         }
         return true;
@@ -138,15 +138,15 @@ class Buttonclickable{
 
     void draw(SDL_Renderer *renderer, TTF_TextEngine *engine, float mouseX, float mouseY){
         if (clicking){
-            renderRect(renderer, std::array<float,2>{static_cast<float>(pos[0]),static_cast<float>(pos[1])}, 
+            renderRect(renderer, std::array<float,2>{static_cast<float>(pos[0]-size[0]/2),static_cast<float>(pos[1]-size[1]/2)}, 
                         std::array<float,2>{static_cast<float>(size[0]),static_cast<float>(size[1])}, 
                         std::array<int,3>{col[0]/2,col[1]/2,col[2]/2}, true);
         } else if (hover(mouseX,mouseY)){
-            renderRect(renderer, std::array<float,2>{static_cast<float>(pos[0]),static_cast<float>(pos[1])}, 
+            renderRect(renderer, std::array<float,2>{static_cast<float>(pos[0]-size[0]/2),static_cast<float>(pos[1]-size[1]/2)}, 
                         std::array<float,2>{static_cast<float>(size[0]),static_cast<float>(size[1])}, 
                         std::array<int,3>{col[0]+(255-col[0])/2,col[1]+(255-col[1])/2,col[2]+(255-col[2])/2}, true);
         } else {
-            renderRect(renderer, std::array<float,2>{static_cast<float>(pos[0]),static_cast<float>(pos[1])}, 
+            renderRect(renderer, std::array<float,2>{static_cast<float>(pos[0]-size[0]/2),static_cast<float>(pos[1]-size[1]/2)}, 
                         std::array<float,2>{static_cast<float>(size[0]),static_cast<float>(size[1])}, col, true);
         }
 
@@ -157,7 +157,7 @@ class Buttonclickable{
             std::cout<<SDL_GetError();
         }
 
-        renderText(engine, font, text, std::array<int,2>{static_cast<int>(pos[0]+size[0]/2),static_cast<int>(pos[1]+size[1]/2)}
+        renderText(engine, font, text, std::array<int,2>{static_cast<int>(pos[0]),static_cast<int>(pos[1])}
                     , std::array<int,3>{255,255,255});
         
         TTF_CloseFont(font);
@@ -739,8 +739,18 @@ namespace checkFinder{
     }
 }
 
-struct Position{
+enum class PosState {
+    PLAY=0,
+    CHECKMATE=1,
+    STALEMATE=2
+};
 
+struct Position{
+    std::array<std::array<int,8>,8> board;
+    std::vector<Move> moves;
+    std::vector<Position> positions;
+    pCol turn;
+    PosState state;
 };
 
 class Bot{
@@ -792,6 +802,8 @@ class Chess{
         playing = false;
         bot = false;
         botCol = pCol::NONE;
+        button1.init("Bot",std::array<int,2>{(squareBuffer+4*squareSize)/2,squareBuffer+4*squareSize},std::array<int,2>{squareSize*3,squareSize},std::array<int,3>{200,200,200});
+        button2.init("Bot",std::array<int,2>{((squareBuffer+4*squareSize)/2)*3,squareBuffer+4*squareSize},std::array<int,2>{squareSize*3,squareSize},std::array<int,3>{200,200,200});
     }
 
     void update(Uint32 mButtons, float mouseX, float mouseY){
