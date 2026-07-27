@@ -109,7 +109,8 @@ class Buttonclickable{
         return true;
     }
 
-    void clicked(Uint32 mButtons, float mouseX, float mouseY){
+    void clickcheck(Uint32 mButtons, float mouseX, float mouseY){
+        //run this every frame
         if (!hover(mouseX, mouseY)){
             if (clicking){
                 clicking = false;
@@ -129,6 +130,7 @@ class Buttonclickable{
     }
 
     bool getclicked(){
+        //run this for the if statement
         if (clicked){
             clicked = false;
             return true;
@@ -754,7 +756,12 @@ struct Position{
 };
 
 class Bot{
+    protected:
+    bool hard;
+    pCol colour;
 
+    public:
+    Bot(){}
 };
 
 class Chess{
@@ -765,7 +772,8 @@ class Chess{
     pCol turn;
     MoveCalculator mCalc;
     bool playing;
-    bool bot;
+    bool isbot;
+    Bot bot;
     pCol botCol;
     Buttonclickable button1;
     Buttonclickable button2;
@@ -800,10 +808,10 @@ class Chess{
             }
         }
         playing = false;
-        bot = false;
+        isbot = false;
         botCol = pCol::NONE;
-        button1.init("Bot",std::array<int,2>{(squareBuffer+4*squareSize)/2,squareBuffer+4*squareSize},std::array<int,2>{squareSize*3,squareSize},std::array<int,3>{200,200,200});
-        button2.init("Bot",std::array<int,2>{((squareBuffer+4*squareSize)/2)*3,squareBuffer+4*squareSize},std::array<int,2>{squareSize*3,squareSize},std::array<int,3>{200,200,200});
+        button1.init("2P",std::array<int,2>{(squareBuffer+4*squareSize)/2,squareBuffer+4*squareSize},std::array<int,2>{squareSize*3,squareSize},std::array<int,3>{100,100,100});
+        button2.init("1P",std::array<int,2>{((squareBuffer+4*squareSize)/2)*3,squareBuffer+4*squareSize},std::array<int,2>{squareSize*3,squareSize},std::array<int,3>{100,100,100});
     }
 
     void update(Uint32 mButtons, float mouseX, float mouseY){
@@ -813,12 +821,27 @@ class Chess{
             select(mButtons, mouseX, mouseY);
         }
         else{
-            
+            button1.clickcheck(mButtons, mouseX, mouseY);
+            button2.clickcheck(mButtons, mouseX, mouseY);
+
+            if (!isbot){
+                if (button1.getclicked()){
+                    playing = true;
+                }
+                if (button2.getclicked()){
+                    isbot = true;
+                    button1.setText("easy");
+                    button2.setText("hard");
+                    bot = Bot();
+                }
+            } else {
+
+            }
         }
 
     }
 
-    void draw(SDL_Renderer *renderer, TTF_TextEngine *textengine){
+    void draw(SDL_Renderer *renderer, TTF_TextEngine *textengine, float mouseX, float mouseY){
         SDL_SetRenderDrawColor(renderer, 127, 127, 127, 255);
         SDL_RenderClear(renderer);
 
@@ -826,7 +849,8 @@ class Chess{
         movesDraw(renderer, textengine);
 
         if (!playing){
-
+            button1.draw(renderer, textengine, mouseX, mouseY);
+            button2.draw(renderer, textengine, mouseX, mouseY);
         }
 
         SDL_RenderPresent(renderer);
@@ -1040,7 +1064,7 @@ int main(int argc, char* argv[]){
         mButtons = SDL_GetMouseState(&mouseX, &mouseY); //returns bitmask, use 'bitwise and' (&) and bitmask for intended Mbutton to check if clicked
 
         game.update(mButtons, mouseX, mouseY);
-        game.draw(renderer, textEngine);
+        game.draw(renderer, textEngine, mouseX, mouseY);
 
         SDL_UpdateWindowSurface(window);
 
