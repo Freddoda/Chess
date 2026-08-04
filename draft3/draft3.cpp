@@ -748,7 +748,6 @@ enum class PosState {
 };
 
 struct Position{
-    std::array<std::array<int,8>,8> board;
     std::vector<Move> moves;
     std::vector<Position> positions;
     pCol turn;
@@ -759,9 +758,24 @@ class Bot{
     protected:
     bool hard;
     pCol colour;
+    bool colled;
+    bool diffed;
 
     public:
-    Bot(){}
+    Bot(){
+        colled = false;
+        diffed = false;
+    }
+
+    void setcolour(pCol colour){
+        this->colour = colour;
+        colled = true;
+    }
+
+    void setdiff(bool hard){
+        this->hard = hard;
+        diffed = true;
+    }
 };
 
 class Chess{
