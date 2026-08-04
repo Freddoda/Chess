@@ -776,6 +776,14 @@ class Bot{
         this->hard = hard;
         diffed = true;
     }
+
+    bool getcolled(){
+        return colled;
+    }
+
+    bool getdiffed(){
+        return diffed;
+    }
 };
 
 class Chess{
@@ -844,12 +852,19 @@ class Chess{
                 }
                 if (button2.getclicked()){
                     isbot = true;
-                    button1.setText("easy");
-                    button2.setText("hard");
+                    button1.setText("White");
+                    button2.setText("Black");
                     bot = Bot();
                 }
-            } else {
+                return;
+            } 
+            if (!bot.getcolled()){
+                
+                return;
+            } 
+            if (!bot.getdiffed()){
 
+                return;
             }
         }
 
