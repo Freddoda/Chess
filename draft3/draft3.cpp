@@ -765,6 +765,8 @@ class Bot{
     Bot(){
         colled = false;
         diffed = false;
+        colour = pCol::NONE;
+        hard = false;
     }
 
     void setcolour(pCol colour){
@@ -775,6 +777,13 @@ class Bot{
     void setdiff(bool hard){
         this->hard = hard;
         diffed = true;
+    }
+
+    pCol getcol(){
+        if (colled){
+            return colour;
+        }
+        return pCol::NONE;
     }
 
     bool getcolled(){
@@ -838,6 +847,7 @@ class Chess{
         }
         playing = false;
         isbot = false;
+        bot = Bot();
         botCol = pCol::NONE;
         button1.init("2P",std::array<int,2>{(squareBuffer+4*squareSize)/2,squareBuffer+4*squareSize},std::array<int,2>{squareSize*3,squareSize},std::array<int,3>{100,100,100});
         button2.init("1P",std::array<int,2>{((squareBuffer+4*squareSize)/2)*3,squareBuffer+4*squareSize},std::array<int,2>{squareSize*3,squareSize},std::array<int,3>{100,100,100});
@@ -864,7 +874,6 @@ class Chess{
                     isbot = true;
                     button1.setText("White");
                     button2.setText("Black");
-                    bot = Bot();
                 }
                 return;
             } 
@@ -958,7 +967,10 @@ class Chess{
 
         renderCircle(renderer,squareBuffer+squareSize/2+squareSize*selectedPos[0],squareBuffer+squareSize/2+squareSize*selectedPos[1],
                      8, std::array<int,3>{255,0,0});
-
+        if (turn==bot.getcol()){
+            TTF_CloseFont(font);
+            return;
+        }
         for (Move move: mCalc.getMoves()){
             if (move.startpos != selectedPos){
                 continue;
