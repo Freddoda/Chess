@@ -784,6 +784,13 @@ class Bot{
     bool getdiffed(){
         return diffed;
     }
+
+    void update(pCol &turn, std::array<std::array<Piece,8>,8> &board){
+        if (turn!=colour){
+            return;
+        }
+
+    }
 };
 
 class Chess{
@@ -841,6 +848,9 @@ class Chess{
         if (playing){
             mCalc.calculate(turn, boardArr);
             select(mButtons, mouseX, mouseY);
+            if (isbot){
+                bot.update(turn, boardArr);
+            }
         }
         else{
             button1.clickcheck(mButtons, mouseX, mouseY);
@@ -859,11 +869,27 @@ class Chess{
                 return;
             } 
             if (!bot.getcolled()){
-                
+                if (button1.getclicked()){
+                    bot.setcolour(pCol::WHITE);
+                    button1.setText("Easy");
+                    button2.setText("Hard");
+                }
+                if (button2.getclicked()){
+                    bot.setcolour(pCol::BLACK);
+                    button1.setText("Easy");
+                    button2.setText("Hard");
+                }
                 return;
             } 
             if (!bot.getdiffed()){
-
+                if (button1.getclicked()){
+                    bot.setdiff(false);
+                    playing=true;
+                }
+                if (button2.getclicked()){
+                    bot.setdiff(true);
+                    playing=true;
+                }
                 return;
             }
         }
