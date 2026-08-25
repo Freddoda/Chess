@@ -8,6 +8,7 @@
 #include<array>
 #include<cmath>
 #include<algorithm>
+#include<thread>
 
 template <typename T>
 bool listContains(const std::vector<T> &list, T item){
@@ -770,6 +771,8 @@ class Bot{
     pCol colour;
     bool colled;
     bool diffed;
+    std::thread thr; 
+    bool started;
 
     public:
     Bot(){
@@ -777,6 +780,7 @@ class Bot{
         diffed = false;
         colour = pCol::NONE;
         hard = false;
+        started = false;
     }
 
     void setcolour(pCol colour){
@@ -809,6 +813,88 @@ class Bot{
             return;
         }
 
+        if (!started){
+            started=true;
+            std::thread thr(botCalc, turn, board);
+            return;
+        }
+
+        if (!thr.joinable()){
+            return;
+        }
+
+        
+    }
+
+    Move botCalc(pCol turn, std::array<std::array<Piece,8>,8> currBoard){
+        std::vector<std::array<std::array<Piece,8>,8>> boards;
+        boards.push_back(currBoard);
+        std::vector<Position> positions;
+        MoveCalculator calculator;
+
+        int depth;
+        if (hard){
+            depth = 5;
+        } else {
+            depth = 3;
+        }
+        int curdepth=-1;
+
+
+    }
+
+    void iteration(pCol &turn, std::vector<std::array<std::array<Piece,8>,8>> &boards, std::vector<Position> &positions, MoveCalculator &calculator, int &depth, int curdepth){
+        curdepth+=1;
+        calculator.calculate(static_cast<pCol>(static_cast<int>(turn)*((curdepth%2)*(-2)+1)),boards[curdepth]);
+        
+
+    }
+
+    std::array<std::array<Piece,8>,8> modBoard(Move move, std::array<std::array<Piece,8>,8> boardArr){
+        for (std::array<Piece,8> &col : boardArr){
+            for (Piece &piece : col){
+                if (piece.moved == std::array<bool,2>{true,false}){
+                    piece.moved = std::array<bool,2>{true,true};
+                }
+            }
+        }
+        if (move.piece.moved == std::array<bool,2>{false,false}){
+            move.piece.moved = std::array<bool,2>{true,false};
+        }
+
+        boardArr[move.startpos[0]][move.startpos[1]] = nullPiece();
+        boardArr[move.endpos[0]][move.endpos[1]] = move.piece;
+        switch (move.type){
+
+            case mType::ENPASSANT:
+                boardArr[move.endpos[0]][move.endpos[1]+static_cast<int>(move.piece.colour)] = nullPiece();
+                break;
+            case mType::PROMOTE_N:
+                boardArr[move.endpos[0]][move.endpos[1]].type = pType::KNIGHT;
+                break;
+            case mType::PROMOTE_B:
+                boardArr[move.endpos[0]][move.endpos[1]].type = pType::BISHOP;
+                break;
+            case mType::PROMOTE_R:
+                boardArr[move.endpos[0]][move.endpos[1]].type = pType::ROOK;
+                break;
+            case mType::PROMOTE_Q:
+                boardArr[move.endpos[0]][move.endpos[1]].type = pType::QUEEN;
+                break;
+            case mType::CASTLE:
+                if (move.endpos[0]<move.startpos[0]){
+                    boardArr[move.endpos[0]+1][move.endpos[1]]=boardArr[0][move.endpos[1]];
+                    boardArr[0][move.endpos[1]] = nullPiece();
+                } else {
+                    boardArr[move.endpos[0]-1][move.endpos[1]]=boardArr[7][move.endpos[1]];
+                    boardArr[7][move.endpos[1]] = nullPiece();
+                }
+                break;
+            default:
+                break;
+        }
+
+        return boardArr;
     }
 };
 
