@@ -661,6 +661,11 @@ namespace checkFinder{
                             check=true;
                         }
                         break;
+                    }  else {
+                        check = false;
+                        pin = false;
+                        between.clear();
+                        break;
                     }
                 }
             }
@@ -724,6 +729,11 @@ namespace checkFinder{
                         } else {
                             check=true;
                         }
+                        break;
+                    } else {
+                        check = false;
+                        pin = false;
+                        between.clear();
                         break;
                     }
                 }
@@ -879,12 +889,12 @@ class Chess{
             } 
             if (!bot.getcolled()){
                 if (button1.getclicked()){
-                    bot.setcolour(pCol::WHITE);
+                    bot.setcolour(pCol::BLACK);
                     button1.setText("Easy");
                     button2.setText("Hard");
                 }
                 if (button2.getclicked()){
-                    bot.setcolour(pCol::BLACK);
+                    bot.setcolour(pCol::WHITE);
                     button1.setText("Easy");
                     button2.setText("Hard");
                 }
@@ -1000,6 +1010,7 @@ class Chess{
             return;
         }
 
+        if (bot.getcol() != turn){
         for (Move move: mCalc.getMoves()){
             if (move.startpos != selectedPos){
                 continue;
@@ -1020,6 +1031,7 @@ class Chess{
                     return;
                     }
             }
+        }
         }
 
         if (boardArr[std::floor((mouseX-squareBuffer)/squareSize)][std::floor((mouseY-squareBuffer)/squareSize)].colour == turn){
